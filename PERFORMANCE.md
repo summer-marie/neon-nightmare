@@ -27,7 +27,8 @@ Never use ctx.filter inside a requestAnimationFrame loop.
 - `ctx.filter` inside any animation loop — causes full repaint
 - `ctx.getImageData()` inside animation loop — extremely slow
 - Creating new gradient objects every frame for static elements —
-  cache them outside the loop if the colors do not change
+  ✅ OPTIMIZED: Bar colors are now pre-calculated and cached,
+  only recalculated when theme changes
 - Calling `ctx.save()` / `ctx.restore()` more than necessary —
   each pair has overhead
 - Large `ctx.shadowBlur` values (above 40) on many elements
@@ -44,6 +45,15 @@ Never use ctx.filter inside a requestAnimationFrame loop.
 - If glitching occurs: lower Particle Count slider to under 60,
   lower Bass Sensitivity to under 2.0, switch visual mode to
   Bars only instead of Bars + Rings
+
+## Optimizations Implemented
+- ✅ Bar color caching: RGB interpolation for 32 bars is now
+  pre-calculated once per theme change instead of 64 times
+  per frame (saves ~64 calculations per frame at 60fps)
+- ✅ Float32Array smoothing buffer for bars (no GC pressure)
+- ✅ Removed ctx.filter from animation loop (eliminated freeze)
+- ✅ Using ctx.shadowBlur for glows (GPU-accelerated)
+- ✅ requestAnimationFrame for smooth 60fps animation
 
 ## Browser Recommendations
 - Chrome or Edge perform best for Canvas 2D with shadowBlur

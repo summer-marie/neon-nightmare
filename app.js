@@ -100,12 +100,20 @@ const state = {
 // Bar smoothing buffer for zone-specific response
 state.barSmooth = new Float32Array(64).fill(0);
 
+// Gradient cache - pre-calculated bar colors to avoid recalculating every frame
+const gradientCache = {
+  barColors: [],      // Pre-calculated RGB values for each bar index
+  lastTheme: null,    // Track when theme changes to invalidate cache
+  lastCanvasWidth: 0  // Track canvas size changes
+};
+
 // ========== INITIALIZATION ==========
 // Sets up canvas, controls, and all event listeners
 function init() {
   updateCanvasSize();
   updateControlReadouts();
   updateThemeColors();
+  updateBarColorCache();
   syncParticles();
   state.animationStarted = true;
   drawFrame();  // Start animation loop
@@ -138,6 +146,7 @@ function init() {
     state.controls.theme = colorPreset.value;
     document.documentElement.dataset.theme = colorPreset.value;
     updateThemeColors();
+    updateBarColorCache();
   });
 
   // Slider controls - all update live
@@ -448,14 +457,24 @@ function drawSphere(audio, intensity) {
   const centerY = height / 2;
   const latSteps = 10;
   const lonSteps = 18;
+  
+  // PART A: Two-layer pulse — slow breath + sharp bass punch
+  const breathe = Math.sin(performance.now() * 0.0008) * 0.03;
+  const bassPunch = audio.bass * state.controls.bassSensitivity * 0.38;
+  const radius = Math.min(
+    Math.min(canvas.width, canvas.height) * 0.36
+      * state.controls.ringSize * (1 + breathe + bassPunch),
+    Math.min(canvas.width, canvas.height) * 0.40
+  );
+  
+  // PART D: Edge opacity with bass flash
+  const baseAlpha = (0.12 + audio.volume * 0.42) * intensity;
+  const edgeAlpha = Math.min(0.95, baseAlpha + audio.bass * state.controls.bassSensitivity * 0.55 + audio.volume * 0.15);
+  
   const scale = Math.min(Math.min(width, height) * 0.36 * state.controls.ringSize, Math.min(width, height) * 0.40);
-  const pulse = 1 + audio.bass * 0.25;
-  const sphereScale = scale * pulse;
-  const edgeAlpha = (0.12 + audio.volume * 0.42) * intensity;
-  const spikeBaseLength = scale * 0.16;
-  const spikeLength = spikeBaseLength * (1 + audio.bass * 3.5 + audio.volume * 1.5);
 
-  state.sphereRotationY += 0.004 + audio.bass * 0.018;
+  // PART F: Rotation speed burst on bass hit
+  state.sphereRotationY += 0.004 + audio.bass * state.controls.bassSensitivity * 0.028;
   state.sphereRotationX = Math.sin(performance.now() * 0.0004) * 0.28;
 
   const vertices = [];
@@ -471,12 +490,20 @@ function drawSphere(audio, intensity) {
       const baseZ = Math.cos(theta) * Math.sin(phi);
       const point = rotatePoint(baseX, baseY, baseZ, state.sphereRotationX, state.sphereRotationY);
 
+      // PART B: Per-vertex displacement on bass hit with random variation
+      const displacement = 1 + audio.bass
+        * state.controls.bassSensitivity * 0.22
+        * (0.7 + Math.random() * 0.6);
+      const dispX = point.x * displacement;
+      const dispY = point.y * displacement;
+      const dispZ = point.z * displacement;
+
       row.push({
-        x: point.x,
-        y: point.y,
-        z: point.z,
-        sx: centerX + point.x * sphereScale,
-        sy: centerY + point.y * sphereScale,
+        x: dispX,
+        y: dispY,
+        z: dispZ,
+        sx: centerX + dispX * radius,
+        sy: centerY + dispY * radius,
         index: lat * lonSteps + lon
       });
     }
@@ -514,7 +541,10 @@ function drawSphere(audio, intensity) {
         continue;
       }
 
-      const outwardLength = spikeLength * (0.72 + ((vertex.index % 7) / 7) * 0.56);
+      // PART E: Spike length explosion with random variation per spike
+      const baseLen = scale * 0.16;
+      const spikeLen = baseLen * (1 + audio.bass * state.controls.bassSensitivity * 4.2 + audio.volume * 1.8 + Math.random() * audio.bass * 0.8);
+      const outwardLength = spikeLen * (0.72 + ((vertex.index % 7) / 7) * 0.56);
       const endX = vertex.sx + vertex.x * outwardLength;
       const endY = vertex.sy + vertex.y * outwardLength;
       const rgb = vertex.index % 4 === 0 ? state.colors.accentRgb : state.colors.accentTwoRgb;
@@ -582,7 +612,8 @@ function drawSphereEdge(start, end, index, edgeAlpha, audio) {
   ctx.moveTo(start.sx, start.sy);
   ctx.lineTo(end.sx, end.sy);
   ctx.strokeStyle = rgba(rgb, edgeAlpha * depthAlpha);
-  ctx.lineWidth = 0.85 + audio.volume * 2.1 + audio.bass * 1.4;
+  // PART C: Edge thickness reacts to bass
+  ctx.lineWidth = 0.6 + audio.bass * state.controls.bassSensitivity * 2.2 + audio.volume * 0.4;
   ctx.shadowColor = color;
   ctx.stroke();
 }
@@ -690,6 +721,22 @@ function getThemeShadow(intensity = 1) {
       coreBlur:      50 * intensity,
       spikeBlur:     30 * intensity,
     },
+    "abyss": {
+      primaryBlur:   8,
+      secondaryBlur: 5,
+      primaryColor:  `rgba(${r},${g},${b},0.7)`,
+      secondaryColor:`rgba(${r2},${g2},${b2},0.4)`,
+      coreBlur:      14,
+      spikeBlur:     6,
+    },
+    "void-rot": {
+      primaryBlur:   30,
+      secondaryBlur: 24,
+      primaryColor:  `rgba(${r},${g},${b},1.0)`,
+      secondaryColor:`rgba(${r2},${g2},${b2},0.95)`,
+      coreBlur:      48,
+      spikeBlur:     32,
+    },
   };
 
   return profiles[theme] || profiles["magenta-cyan"];
@@ -755,12 +802,8 @@ function drawBars(audio) {
     const maxAllowedH = Math.min(H - 8, H * 0.80);
     const barH = Math.max(3, Math.min(boosted * maxBarH, maxAllowedH - 4));
 
-    const t = i / half;
-    const [r1, g1, b1] = state.colors.accentRgb;
-    const [r2, g2, b2] = state.colors.accentTwoRgb;
-    const r = Math.round(r1 + (r2 - r1) * t);
-    const g = Math.round(g1 + (g2 - g1) * t);
-    const b = Math.round(b1 + (b2 - b1) * t);
+    // Use pre-calculated colors from cache (updated only on theme change)
+    const [r, g, b] = gradientCache.barColors[i] || [255, 255, 255];
 
     const shadow = getThemeShadow(0.8 + boosted * 0.6);
     ctx.shadowBlur = isBass
@@ -998,6 +1041,7 @@ function updateCanvasSize() {
 
 function handleResize() {
   updateCanvasSize();
+  updateBarColorCache();
   resetParticles();
 }
 
@@ -1036,6 +1080,27 @@ function rgba(rgb, alpha) {
 // Helper: Random number between min and max
 function randomBetween(min, max) {
   return min + Math.random() * (max - min);
+}
+
+// Pre-calculate bar colors based on current theme
+// Called only when theme changes, not every frame
+function updateBarColorCache() {
+  const totalBars = 64;
+  const half = Math.floor(totalBars / 2);
+  const [r1, g1, b1] = state.colors.accentRgb;
+  const [r2, g2, b2] = state.colors.accentTwoRgb;
+
+  gradientCache.barColors = [];
+  for (let i = 0; i < half; i++) {
+    const t = i / half;
+    const r = Math.round(r1 + (r2 - r1) * t);
+    const g = Math.round(g1 + (g2 - g1) * t);
+    const b = Math.round(b1 + (b2 - b1) * t);
+    gradientCache.barColors[i] = [r, g, b];
+  }
+
+  gradientCache.lastTheme = state.controls.theme;
+  gradientCache.lastCanvasWidth = canvas.width;
 }
 
 // Responsive font size for idle text

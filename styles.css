@@ -749,3 +749,31 @@ input[type="range"]::-moz-range-thumb {
   border-color: rgba(255, 255, 255, 0.12);
   color: var(--text-muted, #8a7fa8);
 }
+
+/* ─── THEME: ABYSS ──────────────────────────────────── */
+[data-theme="abyss"] {
+  --accent:             #8b0000;
+  --accent-two:         #3a0000;
+  --accent-rgb:         139, 0, 0;
+  --accent-two-rgb:     58, 0, 0;
+  --bg-deep:            #000000;
+  --bg-mid:             #050000;
+  --panel-bg:           rgba(5, 0, 0, 0.92);
+  --panel-border:       rgba(139, 0, 0, 0.12);
+  --text-primary:       #6b1a1a;
+  --text-muted:         #3d0f0f;
+}
+
+/* ─── THEME: VOID ROT ───────────────────────────────── */
+[data-theme="void-rot"] {
+  --accent:             #ff6a00;
+  --accent-two:         #7b00d4;
+  --accent-rgb:         255, 106, 0;
+  --accent-two-rgb:     123, 0, 212;
+  --bg-deep:            #080008;
+  --bg-mid:             #0f0018;
+  --panel-bg:           rgba(10, 0, 20, 0.88);
+  --panel-border:       rgba(123, 0, 212, 0.22);
+  --text-primary:       #c97aff;
+  --text-muted:         #6b3a8a;
+}
