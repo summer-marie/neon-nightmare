@@ -1,4 +1,14 @@
 <!DOCTYPE html>
+<!-- ====================================================================
+     NEON NIGHTMARE VISUALIZER - Main HTML Structure
+     
+     This file contains:
+     - Header/Hero section with title
+     - Audio upload controls
+     - Canvas visualizer display
+     - Control panel with sliders and presets
+     - Hidden dev theme lab for custom color testing
+     ==================================================================== -->
 <html lang="en" data-theme="magenta-cyan">
 <head>
   <meta charset="UTF-8">
@@ -11,6 +21,8 @@
 <body>
   <div class="site-shell min-h-screen flex items-center justify-center px-4 py-6 md:px-6 md:py-10">
     <main class="app-wrap w-full max-w-6xl">
+      
+      <!-- ===== HERO/HEADER SECTION ===== -->
       <header class="hero-copy text-center mb-6 md:mb-8">
         <p class="eyebrow">Local signal only</p>
         <h1>Neon Nightmare Visualizer Lite</h1>
@@ -19,6 +31,8 @@
         </p>
       </header>
 
+      <!-- ===== AUDIO UPLOAD SECTION ===== 
+           Contains file picker, status text, and HTML5 audio player -->
       <section class="glass-panel p-4 md:p-5 mb-5" aria-labelledby="upload-heading">
         <div class="grid gap-4 md:grid-cols-[1.1fr_1fr] md:items-center">
           <div>
@@ -38,12 +52,17 @@
         <audio id="audioPlayer" class="audio-player mt-4 w-full" controls preload="metadata"></audio>
       </section>
 
+      <!-- ===== MAIN VISUALIZER + CONTROLS GRID ===== -->
       <section class="grid gap-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(300px,0.75fr)]">
+        
+        <!-- CANVAS VISUALIZER - Where the magic happens -->
         <div class="visualizer-frame">
           <canvas id="visualizerCanvas" aria-label="Audio reactive neon visualizer"></canvas>
           <div class="canvas-vignette" aria-hidden="true"></div>
         </div>
 
+        <!-- ===== CONTROL PANEL SIDEBAR ===== 
+             Play/Pause button + all visualization controls -->
         <aside class="glass-panel control-panel p-4 md:p-5" aria-label="Visualizer controls">
           <div class="flex items-center justify-between gap-3 mb-4">
             <div>
@@ -53,16 +72,20 @@
             <button id="playPauseButton" class="primary-button" type="button">Play</button>
           </div>
 
+          <!-- CONTROLS: Visual modes, particles, colors, sliders -->
           <div class="control-stack grid gap-4">
+            <!-- Visual Mode: Rings, Ripples, or Both -->
             <div class="control-field">
               <label for="visualMode">Visual Mode</label>
               <select id="visualMode">
                 <option value="rings">Rings</option>
                 <option value="ripples">Ripples</option>
                 <option value="both" selected>Both</option>
+                <option value="bars">Bass Bars</option>
               </select>
             </div>
 
+            <!-- Particle Style: Bubbles, Dust, or Sparks -->
             <div class="control-field">
               <label for="particleStyle">Particle Style</label>
               <select id="particleStyle">
@@ -72,6 +95,7 @@
               </select>
             </div>
 
+            <!-- Color Preset: Changes theme colors (see styles.css) -->
             <div class="control-field">
               <label for="colorPreset">Color Preset</label>
               <select id="colorPreset">
@@ -79,9 +103,11 @@
                 <option value="toxic-aqua">Toxic green + aqua</option>
                 <option value="blood-violet">Blood pink + violet</option>
                 <option value="acid-shadow">Acid yellow + black</option>
+                <option value="my-custom-theme-dark">My Custom Theme</option>
               </select>
             </div>
 
+            <!-- Overall volume reactivity slider -->
             <div class="slider-field">
               <div class="flex items-center justify-between gap-3">
                 <label for="sensitivity">Sensitivity</label>
@@ -90,6 +116,7 @@
               <input id="sensitivity" type="range" min="0.5" max="2.5" value="1.25" step="0.05">
             </div>
 
+            <!-- Bass-specific reactivity slider -->
             <div class="slider-field">
               <div class="flex items-center justify-between gap-3">
                 <label for="bassSensitivity">Bass Sensitivity</label>
@@ -99,6 +126,7 @@
                 value="1.5" step="0.05">
             </div>
 
+            <!-- Ring/sphere scale multiplier -->
             <div class="slider-field">
               <div class="flex items-center justify-between gap-3">
                 <label for="ringSize">Ring Size</label>
@@ -107,6 +135,7 @@
               <input id="ringSize" type="range" min="0.65" max="1.6" value="1" step="0.05">
             </div>
 
+            <!-- Number of floating particles -->
             <div class="slider-field">
               <div class="flex items-center justify-between gap-3">
                 <label for="particleCount">Particle Count</label>
@@ -118,8 +147,10 @@
         </aside>
       </section>
 
+      <!-- ===== FOOTER ===== -->
       <footer class="footer-note text-center mt-6">
         Local files stay in your browser. No streaming logins, no backend, no external audio APIs.
+        <!-- Dev button to open theme customization lab -->
         <button id="devThemeToggle" type="button" class="dev-theme-btn">
           🎨 Test Color Theme
         </button>
@@ -127,6 +158,11 @@
     </main>
   </div>
 
+  <!-- ====================================================================
+       DEV THEME LAB - Hidden panel for testing custom colors
+       Appears when you click the "🎨 Test Color Theme" button
+       Allows live editing of CSS variables without affecting saved themes
+       ==================================================================== -->
   <div id="devThemePanel" class="dev-panel" aria-label="Developer color theme tester" hidden>
     <div class="dev-panel-inner">
 
@@ -140,8 +176,10 @@
           aria-label="Close theme lab">✕</button>
       </div>
 
+      <!-- Color pickers for live theme customization -->
       <div class="dev-fields">
 
+        <!-- ===== ACCENT COLORS SECTION ===== -->
         <div class="dev-section-label">ACCENT COLORS</div>
 
         <div class="dev-field">

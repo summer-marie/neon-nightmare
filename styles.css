@@ -64,6 +64,24 @@
   --focus: rgba(154, 87, 255, 0.44);
 }
 
+/* ============================================
+   COLOR SET 5: CUSTOM THEME (Red/Dark)
+   ============================================ */
+[data-theme="my-custom-theme-dark"] {
+  --accent: #ff2e2e;
+  --accent-rgb: 255, 46, 46;
+  --accent-two: #111212;
+  --accent-two-rgb: 17, 18, 18;
+  --shadow: rgba(255, 46, 46, 0.3);
+  --focus: rgba(17, 18, 18, 0.44);
+  --bg-deep: #0b0ba2;
+  --bg-mid: #460cbb;
+}
+
+/* ============================================
+   BASE STYLES & LAYOUT
+   ============================================ */
+
 * {
   box-sizing: border-box;
 }
@@ -72,6 +90,7 @@ html {
   background: var(--bg);
 }
 
+/* Body: Full-page gradient background with multiple radial layers */
 body {
   min-height: 100vh;
   margin: 0;
@@ -85,6 +104,7 @@ body {
   font-family: var(--font-main);
 }
 
+/* Pseudo-elements for grid texture overlays */
 body::before,
 body::after {
   position: fixed;
@@ -94,6 +114,7 @@ body::after {
   pointer-events: none;
 }
 
+/* Grid pattern overlay */
 body::before {
   opacity: 0.2;
   background-image:
@@ -103,6 +124,7 @@ body::before {
   mask-image: radial-gradient(circle at center, black, transparent 76%);
 }
 
+/* Scanline/dot texture overlay */
 body::after {
   opacity: 0.16;
   background:
@@ -111,6 +133,10 @@ body::after {
   background-size: auto, 6px 6px;
   mix-blend-mode: screen;
 }
+
+/* ============================================
+   FORM ELEMENTS - Base Styling
+   ============================================ */
 
 button,
 input,
@@ -126,6 +152,7 @@ input[type="range"],
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Focus states - accent color glow */
 button:focus-visible,
 select:focus-visible,
 input:focus-visible,
@@ -134,14 +161,11 @@ input:focus-visible,
   outline-offset: 3px;
 }
 
-.site-shell {
-  position: relative;
-}
+/* ============================================
+   TYPOGRAPHY & TEXT ELEMENTS
+   ============================================ */
 
-.app-wrap {
-  position: relative;
-}
-
+/* Main heading ("Neon Nightmare Visualizer Lite") */
 .hero-copy h1 {
   margin: 0;
   text-shadow:
@@ -153,6 +177,7 @@ input:focus-visible,
   line-height: 0.95;
 }
 
+/* Small label above heading ("Local signal only") */
 .eyebrow {
   margin: 0 0 0.65rem;
   color: var(--accent-two);
@@ -163,12 +188,17 @@ input:focus-visible,
   text-shadow: 0 0 14px rgba(var(--accent-two-rgb), 0.5);
 }
 
+/* Subtitle/description paragraph */
 .subtitle {
   max-width: 48rem;
   color: var(--muted);
   font-size: clamp(0.98rem, 2vw, 1.1rem);
   line-height: 1.65;
 }
+
+/* ============================================
+   GLASS PANEL EFFECT - Used for cards/sections
+   ============================================ */
 
 .glass-panel {
   position: relative;
@@ -185,6 +215,7 @@ input:focus-visible,
   backdrop-filter: blur(18px);
 }
 
+/* Glass panel inner highlight gradient */
 .glass-panel::before {
   position: absolute;
   inset: 0;
@@ -193,6 +224,7 @@ input:focus-visible,
   background: linear-gradient(120deg, rgba(255, 255, 255, 0.09), transparent 30%, transparent 70%, rgba(var(--accent-two-rgb), 0.08));
 }
 
+/* Section headings ("Audio Source", "Control Deck") */
 .section-title {
   position: relative;
   margin: 0;
@@ -203,6 +235,7 @@ input:focus-visible,
   text-transform: uppercase;
 }
 
+/* Muted text elements */
 .status-text,
 .mini-note,
 .footer-note,
@@ -224,6 +257,10 @@ input:focus-visible,
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ============================================
+   BUTTONS - Upload & Play/Pause
+   ============================================ */
 
 .upload-button,
 .primary-button {
@@ -251,6 +288,7 @@ input:focus-visible,
   transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease;
 }
 
+/* Button hover effects */
 .upload-button:hover,
 .primary-button:hover {
   box-shadow:
@@ -261,6 +299,7 @@ input:focus-visible,
   transform: translateY(-1px);
 }
 
+/* Play button active state */
 .primary-button.is-playing {
   background:
     linear-gradient(135deg, rgba(var(--accent-two-rgb), 0.92), rgba(var(--accent-rgb), 0.72)),
@@ -295,6 +334,7 @@ input:focus-visible,
     inset 0 0 64px rgba(var(--accent-two-rgb), 0.08);  /* INNER EDGE GLOW: Soft accent-two glow */
 }
 
+/* Canvas element sizing */
 #visualizerCanvas {
   display: block;
   width: 100%;
@@ -302,6 +342,7 @@ input:focus-visible,
   min-height: min(64vh, 620px);
 }
 
+/* Vignette overlay on canvas */
 .canvas-vignette {
   position: absolute;
   inset: 0;
@@ -312,6 +353,10 @@ input:focus-visible,
   background-size: 100% 4px, auto;
   mix-blend-mode: screen;
 }
+
+/* ============================================
+   CONTROL PANEL - Dropdowns & Sliders
+   ============================================ */
 
 .control-panel {
   align-self: start;
@@ -333,12 +378,15 @@ input:focus-visible,
   text-transform: uppercase;
 }
 
+/* Slider output values (right side numbers) */
 .slider-field output {
   color: var(--accent-two);
   font-size: 0.78rem;
   font-weight: 800;
   text-shadow: 0 0 10px rgba(var(--accent-two-rgb), 0.42);
 }
+
+/* ===== DROPDOWN SELECTS ===== */
 
 select {
   width: 100%;
@@ -361,6 +409,8 @@ select option {
   color: var(--text);
 }
 
+/* ===== RANGE SLIDERS ===== */
+
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
@@ -372,6 +422,7 @@ input[type="range"] {
   cursor: pointer;
 }
 
+/* Slider track - WebKit (Chrome, Safari) */
 input[type="range"]::-webkit-slider-runnable-track {
   height: 0.42rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -382,6 +433,7 @@ input[type="range"]::-webkit-slider-runnable-track {
   box-shadow: 0 0 14px rgba(var(--accent-rgb), 0.2);
 }
 
+/* Slider thumb - WebKit (Chrome, Safari) */
 input[type="range"]::-webkit-slider-thumb {
   width: 1.05rem;
   height: 1.05rem;
@@ -396,6 +448,7 @@ input[type="range"]::-webkit-slider-thumb {
   appearance: none;
 }
 
+/* Slider track - Firefox */
 input[type="range"]::-moz-range-track {
   height: 0.42rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -405,6 +458,7 @@ input[type="range"]::-moz-range-track {
     rgba(255, 255, 255, 0.08);
 }
 
+/* Slider thumb - Firefox */
 input[type="range"]::-moz-range-thumb {
   width: 1.05rem;
   height: 1.05rem;
@@ -416,9 +470,15 @@ input[type="range"]::-moz-range-thumb {
     0 0 18px rgba(var(--accent-two-rgb), 0.62);
 }
 
+/* ============================================
+   RESPONSIVE & ACCESSIBILITY
+   ============================================ */
+
 .footer-note {
   font-size: 0.84rem;
 }
+
+/* ===== MOBILE BREAKPOINTS ===== */
 
 @media (max-width: 767px) {
   .visualizer-frame,

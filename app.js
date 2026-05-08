@@ -1,3 +1,27 @@
+// ====================================================================
+// NEON NIGHTMARE VISUALIZER - Main JavaScript
+// ====================================================================
+//
+// APP STRUCTURE:
+// 1. DOM Element References (lines 8-25)
+// 2. State Object - holds all app data (lines 27-62)
+// 3. Initialization & Event Listeners (lines 64-110)
+// 4. File Upload Handler (lines 112-130)
+// 5. Playback Controls (lines 132-175)
+// 6. Web Audio API Setup (lines 177-193)
+// 7. Main Animation Loop (lines 195-220)
+// 8. Audio Data Reading & Processing (lines 222-285)
+// 9. Background Painting (lines 287-320)
+// 10. 3D Sphere Drawing with Rotation (lines 322-460)
+// 11. Ripple Effects System (lines 462-525)
+// 12. Particle System (lines 527-645)
+// 13. Idle State Display (lines 647-685)
+// 14. Utility Functions (lines 687-730)
+// 15. Dev Theme Lab (lines 732-end)
+//
+// ====================================================================
+
+// ========== DOM ELEMENT REFERENCES ==========
 const audioUpload = document.getElementById("audioUpload");
 const audioPlayer = document.getElementById("audioPlayer");
 const playPauseButton = document.getElementById("playPauseButton");
@@ -17,24 +41,37 @@ const particleCountValue = document.getElementById("particleCountValue");
 const canvas = document.getElementById("visualizerCanvas");
 const ctx = canvas.getContext("2d");
 
+// ========== GLOBAL STATE OBJECT ==========
+// Holds all application state, audio data, and visualization settings
 const state = {
+  // Web Audio API objects
   audioContext: null,
   sourceNode: null,
   analyser: null,
-  frequencyData: null,
-  timeData: null,
-  objectUrl: null,
+  frequencyData: null,  // Frequency spectrum data (bass, mid, treble)
+  timeData: null,       // Waveform data
+  
+  // File handling
+  objectUrl: null,      // Blob URL for uploaded file
+  
+  // Playback state flags
   isAudioReady: false,
   isPlaying: false,
   animationStarted: false,
+  
+  // Audio reactive values
   lastPeak: 0,
   lastRippleAt: 0,
-  sphereRotationY: 0,
-  sphereRotationX: 0,
-  smoothedVolume: 0,
-  smoothedBass: 0,
-  ripples: [],
-  particles: [],
+  sphereRotationY: 0,   // Y-axis rotation for 3D sphere
+  sphereRotationX: 0,   // X-axis rotation for 3D sphere
+  smoothedVolume: 0,    // Smoothed overall volume
+  smoothedBass: 0,      // Smoothed bass level
+  
+  // Visual effects arrays
+  ripples: [],          // Active ripple animations
+  particles: [],        // Floating particle objects
+  
+  // User controls (synced with UI)
   controls: {
     mode: visualMode.value,
     particleStyle: particleStyle.value,
@@ -44,6 +81,8 @@ const state = {
     ringSize: Number(ringSize.value),
     particleCount: Number(particleCount.value)
   },
+  
+  // Current theme colors (updated from CSS variables)
   colors: {
     accent: "#ff2fd6",
     accentTwo: "#22e8ff",
@@ -52,36 +91,47 @@ const state = {
   }
 };
 
+// ========== INITIALIZATION ==========
+// Sets up canvas, controls, and all event listeners
 function init() {
   updateCanvasSize();
   updateControlReadouts();
   updateThemeColors();
   syncParticles();
   state.animationStarted = true;
-  drawFrame();
+  drawFrame();  // Start animation loop
 
+  // File upload event
   audioUpload.addEventListener("change", handleFileUpload);
+  
+  // Playback control events
   playPauseButton.addEventListener("click", togglePlayback);
   audioPlayer.addEventListener("play", handleAudioPlay);
   audioPlayer.addEventListener("pause", handleAudioPause);
   audioPlayer.addEventListener("ended", handleAudioPause);
+  
+  // Window resize
   window.addEventListener("resize", handleResize);
 
+  // Visual mode control (rings/ripples/both)
   visualMode.addEventListener("change", () => {
     state.controls.mode = visualMode.value;
   });
 
+  // Particle style control (bubbles/dust/sparks)
   particleStyle.addEventListener("change", () => {
     state.controls.particleStyle = particleStyle.value;
     resetParticles();
   });
 
+  // Color preset switcher (changes CSS theme)
   colorPreset.addEventListener("change", () => {
     state.controls.theme = colorPreset.value;
     document.documentElement.dataset.theme = colorPreset.value;
     updateThemeColors();
   });
 
+  // Slider controls - all update live
   sensitivity.addEventListener("input", () => {
     state.controls.sensitivity = Number(sensitivity.value);
     updateControlReadouts();
@@ -104,6 +154,8 @@ function init() {
   });
 }
 
+// ========== FILE UPLOAD HANDLER ==========
+// Loads selected audio file into the HTML5 audio player
 function handleFileUpload(event) {
   const file = event.target.files[0];
 
@@ -128,6 +180,9 @@ function handleFileUpload(event) {
   playPauseButton.textContent = "Play";
   playPauseButton.classList.remove("is-playing");
 }
+
+// ========== PLAYBACK CONTROLS ==========
+// Toggle play/pause and handle audio state changes
 
 async function togglePlayback() {
   if (!state.isAudioReady) {
@@ -172,6 +227,9 @@ function handleAudioPause() {
   }
 }
 
+// ========== WEB AUDIO API SETUP ==========
+// Creates AudioContext, Analyser, and connects audio graph
+// Only runs once - subsequent calls reuse existing nodes
 async function setupAudioGraph() {
   if (!state.audioContext) {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -190,29 +248,43 @@ async function setupAudioGraph() {
   }
 }
 
+// ========== MAIN ANIMATION LOOP ==========
+// Runs 60fps, handles all drawing and audio-reactive effects
 function drawFrame(now = 0) {
   updateCanvasSize();
 
+  // Get current audio data (frequency + waveform)
   const audio = readAudioData();
-  paintBackground(audio);
-  drawParticles(audio);
+  
+  // Draw layers in order:
+  paintBackground(audio);     // Radial gradient background
+  drawParticles(audio);       // Floating particles
 
+  // If no file loaded, show idle state
   if (!state.isAudioReady) {
     drawIdleState(now);
   } else {
-    if (state.controls.mode === "rings" || state.controls.mode === "both") {
-      drawSphere(audio, state.controls.mode === "both" ? 0.86 : 1);
-    }
-
-    if (state.controls.mode === "ripples" || state.controls.mode === "both") {
-      updateRipples(audio, now);
-      drawRipples(audio, state.controls.mode === "both" ? 0.75 : 1);
+    // Draw based on selected mode
+    if (state.controls.mode === "bars") {
+      drawBars(audio);
+    } else {
+      if (state.controls.mode === "rings" || state.controls.mode === "both") {
+        drawSphere(audio, state.controls.mode === "both" ? 0.86 : 1);
+      }
+      if (state.controls.mode === "ripples" || state.controls.mode === "both") {
+        updateRipples(audio, now);
+        drawRipples(audio, state.controls.mode === "both" ? 0.75 : 1);
+      }
     }
   }
 
-  requestAnimationFrame(drawFrame);
+  requestAnimationFrame(drawFrame);  // Loop
 }
 
+// ========== AUDIO DATA READING ==========
+// Reads frequency/waveform data from Web Audio API
+// Returns: { volume, bass, treble } object
+// If no audio playing, returns idle pulse values
 function readAudioData() {
   let volume = 0;
   let bass = 0;
@@ -271,6 +343,8 @@ function readAudioData() {
   };
 }
 
+// ========== BACKGROUND PAINTING ==========
+// Draws audio-reactive radial gradient + diagonal grid lines
 function paintBackground(audio) {
   const width = canvas.width;
   const height = canvas.height;
@@ -309,6 +383,9 @@ function paintBackground(audio) {
   ctx.restore();
 }
 
+// ========== 3D SPHERE DRAWING ==========
+// Renders rotating wireframe sphere with audio-reactive spikes
+// Creates 3D effect using rotation matrices and depth sorting
 function drawSphere(audio, intensity) {
   const width = canvas.width;
   const height = canvas.height;
@@ -410,6 +487,8 @@ function drawSphere(audio, intensity) {
   ctx.restore();
 }
 
+// ========== 3D ROTATION HELPER ==========
+// Rotates a 3D point around X and Y axes
 function rotatePoint(x, y, z, rotationX, rotationY) {
   const cosY = Math.cos(rotationY);
   const sinY = Math.sin(rotationY);
@@ -425,6 +504,9 @@ function rotatePoint(x, y, z, rotationX, rotationY) {
   };
 }
 
+// ========== SPHERE EDGE DRAWING ==========
+// Draws individual wireframe edge between two sphere vertices
+// Skips edges facing away from camera (negative Z)
 function drawSphereEdge(start, end, index, edgeAlpha, audio) {
   const frontEpsilon = -0.04;
 
@@ -445,6 +527,8 @@ function drawSphereEdge(start, end, index, edgeAlpha, audio) {
   ctx.stroke();
 }
 
+// ========== RIPPLE SYSTEM ==========
+// Creates new ripples on bass peaks, updates and filters existing ones
 function updateRipples(audio, now) {
   const peak = audio.volume * 0.65 + audio.bass * 0.7;
   const minimumGap = 170 - Math.min(90, audio.bass * 90);
@@ -475,6 +559,8 @@ function updateRipples(audio, now) {
     .filter((ripple) => ripple.alpha > 0.018 && ripple.radius < maxRadius);
 }
 
+// ========== RIPPLE DRAWING ==========
+// Renders all active ripple circles with audio-reactive distortion
 function drawRipples(audio, intensity) {
   const centerX = canvas.width / 2;
   const centerY = canvas.height / 2;
@@ -504,6 +590,87 @@ function drawRipples(audio, intensity) {
   ctx.restore();
 }
 
+function drawBars(audio) {
+  if (!state.analyser || !state.frequencyData) return;
+
+  state.analyser.getByteFrequencyData(state.frequencyData);
+
+  const W = canvas.width;
+  const H = canvas.height;
+  const cx = W / 2;
+  const cy = H / 2;
+
+  // Number of bars — use fewer bins for chunkier visible bars
+  const totalBars = 64;
+  const binStep = Math.floor(state.frequencyData.length / totalBars);
+  const barW = (W * 0.82) / totalBars;
+  const gap = barW * 0.18;
+  const startX = cx - (totalBars / 2) * barW;
+  const maxBarH = H * 0.72;
+  const bassBoost = state.controls.bassSensitivity ?? 1.5;
+  const sens = state.controls.sensitivity;
+
+  for (let i = 0; i < totalBars; i++) {
+    // Average a small bin range for smoother bars
+    let sum = 0;
+    for (let k = 0; k < binStep; k++) {
+      sum += state.frequencyData[i * binStep + k] || 0;
+    }
+    const raw = sum / binStep / 255;
+
+    // Extra bass boost for the first 12 bars (sub-bass and bass range)
+    const isBass = i < 12;
+    const boosted = Math.min(1, raw * sens * (isBass ? bassBoost * 1.6 : sens));
+
+    const barH = Math.max(3, boosted * maxBarH);
+    const x = startX + i * barW;
+    const y = cy + H * 0.08 - barH; // anchor bars to a baseline below center
+
+    // Color: bass bars use accent, mid/high use accentTwo, blend in between
+    const t = i / totalBars;
+    const [r1, g1, b1] = state.colors.accentRgb;
+    const [r2, g2, b2] = state.colors.accentTwoRgb;
+    const r = Math.round(r1 + (r2 - r1) * t);
+    const g = Math.round(g1 + (g2 - g1) * t);
+    const b = Math.round(b1 + (b2 - b1) * t);
+
+    // Glow
+    ctx.shadowBlur = isBass ? 18 + boosted * 28 : 10 + boosted * 14;
+    ctx.shadowColor = `rgba(${r},${g},${b},0.9)`;
+
+    // Bar gradient — bright top, fades to transparent at baseline
+    const grad = ctx.createLinearGradient(x, y, x, y + barH);
+    grad.addColorStop(0,   `rgba(${r},${g},${b},${0.85 + boosted * 0.15})`);
+    grad.addColorStop(0.6, `rgba(${r},${g},${b},0.5)`);
+    grad.addColorStop(1,   `rgba(${r},${g},${b},0.08)`);
+
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.roundRect(x + gap / 2, y, barW - gap, barH, [3, 3, 0, 0]);
+    ctx.fill();
+
+    // Top cap glow dot on each bar
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = `rgba(${r},${g},${b},0.95)`;
+    ctx.beginPath();
+    ctx.arc(x + barW / 2, y, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Baseline divider line
+  ctx.shadowBlur = 0;
+  const baseY = cy + H * 0.08;
+  ctx.strokeStyle = `rgba(${state.colors.accentRgb[0]},${state.colors.accentRgb[1]},${state.colors.accentRgb[2]},0.2)`;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(startX, baseY);
+  ctx.lineTo(startX + totalBars * barW, baseY);
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+}
+
+// ========== PARTICLE MANAGEMENT ==========
+// Adds or removes particles to match target count
 function syncParticles() {
   const target = state.controls.particleCount;
 
@@ -521,6 +688,7 @@ function resetParticles() {
   syncParticles();
 }
 
+// Creates a new particle with random properties
 function createParticle() {
   const style = state.controls.particleStyle;
   const baseSize = style === "bubbles" ? randomBetween(4, 16) : style === "sparks" ? randomBetween(1, 4) : randomBetween(1, 3);
@@ -537,6 +705,8 @@ function createParticle() {
   };
 }
 
+// ========== PARTICLE DRAWING ==========
+// Updates and renders all particles based on selected style
 function drawParticles(audio) {
   syncParticles();
   const style = state.controls.particleStyle;
@@ -570,6 +740,7 @@ function drawParticles(audio) {
   ctx.restore();
 }
 
+// Draws bubble-style particle (soft gradient with outline)
 function drawBubbleParticle(particle, rgb, alpha) {
   const bubble = ctx.createRadialGradient(particle.x, particle.y, 0, particle.x, particle.y, particle.size * 1.8);
   bubble.addColorStop(0, rgba(rgb, alpha * 0.34));
@@ -588,6 +759,7 @@ function drawBubbleParticle(particle, rgb, alpha) {
   ctx.stroke();
 }
 
+// Draws dust-style particle (simple glowing dot)
 function drawDustParticle(particle, rgb, alpha) {
   ctx.shadowBlur = 12;
   ctx.shadowColor = rgba(rgb, 0.8);
@@ -597,6 +769,7 @@ function drawDustParticle(particle, rgb, alpha) {
   ctx.fill();
 }
 
+// Draws spark-style particle (digital glitch rectangles)
 function drawSparkParticle(particle, rgb, alpha, audio) {
   const width = particle.size * (2.2 + audio.treble * 2);
   const height = Math.max(1, particle.size * 0.9);
@@ -612,6 +785,8 @@ function drawSparkParticle(particle, rgb, alpha, audio) {
   }
 }
 
+// ========== IDLE STATE DISPLAY ==========
+// Shows pulsing rings + text when no audio file is loaded
 function drawIdleState(now) {
   const centerX = canvas.width / 2;
   const centerY = canvas.height / 2;
@@ -650,6 +825,9 @@ function drawIdleState(now) {
   ctx.restore();
 }
 
+// ========== UTILITY FUNCTIONS ==========
+
+// Updates canvas size based on container and device pixel ratio
 function updateCanvasSize() {
   const rect = canvas.getBoundingClientRect();
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -667,6 +845,7 @@ function handleResize() {
   resetParticles();
 }
 
+// Updates slider readout values in UI
 function updateControlReadouts() {
   sensitivityValue.textContent = Number(sensitivity.value).toFixed(2);
   bassSensitivityValue.textContent =
@@ -675,6 +854,7 @@ function updateControlReadouts() {
   particleCountValue.textContent = particleCount.value;
 }
 
+// Reads CSS custom properties and updates state.colors
 function updateThemeColors() {
   const styles = getComputedStyle(document.documentElement);
   state.colors.accent = styles.getPropertyValue("--accent").trim();
@@ -683,6 +863,7 @@ function updateThemeColors() {
   state.colors.accentTwoRgb = parseRgbVariable(styles.getPropertyValue("--accent-two-rgb"));
 }
 
+// Parses "R, G, B" string into [R, G, B] array
 function parseRgbVariable(value) {
   return value
     .split(",")
@@ -690,14 +871,17 @@ function parseRgbVariable(value) {
     .filter((channel) => Number.isFinite(channel));
 }
 
+// Helper: Creates rgba() string from RGB array + alpha
 function rgba(rgb, alpha) {
   return "rgba(" + rgb[0] + ", " + rgb[1] + ", " + rgb[2] + ", " + alpha + ")";
 }
 
+// Helper: Random number between min and max
 function randomBetween(min, max) {
   return min + Math.random() * (max - min);
 }
 
+// Responsive font size for idle text
 function getIdleFont() {
   const size = Math.max(18, Math.min(28, canvas.width / 34));
   return "800 " + size + "px Inter, system-ui, sans-serif";
@@ -708,8 +892,11 @@ function getIdleSubFont() {
   return "500 " + size + "px Inter, system-ui, sans-serif";
 }
 
+// Start the app!
 init();
 
+// ========== DEV THEME LAB ==========
+// Hidden panel for live color customization and CSS export
 (function devThemeLab() {
   const toggle = document.getElementById("devThemeToggle");
   const panel = document.getElementById("devThemePanel");
