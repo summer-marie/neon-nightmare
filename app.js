@@ -42,8 +42,6 @@ const glowToggle = document.getElementById("glowToggle");
 const glowToggleHint = document.getElementById("glowToggleHint");
 const glowIntensity = document.getElementById("glowIntensity");
 const glowIntensityValue = document.getElementById("glowIntensityValue");
-const visualContrast = document.getElementById("visualContrast");
-const visualContrastValue = document.getElementById("visualContrastValue");
 const canvas = document.getElementById("visualizerCanvas");
 const ctx = canvas.getContext("2d");
 
@@ -87,8 +85,7 @@ const state = {
     ringSize: Number(ringSize.value),
     particleCount: Number(particleCount.value),
     glowOn: true,
-    glowIntensity: 1.0,
-    visualContrast: 1.0
+    glowIntensity: 1.0
   },
   
   // Current theme colors (updated from CSS variables)
@@ -178,11 +175,6 @@ function init() {
 
   glowIntensity.addEventListener("input", () => {
     state.controls.glowIntensity = Number(glowIntensity.value);
-    updateControlReadouts();
-  });
-
-  visualContrast.addEventListener("input", () => {
-    state.controls.visualContrast = Number(visualContrast.value);
     updateControlReadouts();
   });
 }
@@ -287,10 +279,6 @@ async function setupAudioGraph() {
 function drawFrame(now = 0) {
   updateCanvasSize();
 
-  ctx.filter = state.controls.visualContrast !== 1.0
-    ? `contrast(${state.controls.visualContrast})`
-    : "none";
-
   // Get current audio data (frequency + waveform)
   const audio = readAudioData();
   
@@ -334,8 +322,6 @@ function drawFrame(now = 0) {
       }
     }
   }
-
-  ctx.filter = "none";
 
   requestAnimationFrame(drawFrame);  // Loop
 }
@@ -1023,8 +1009,6 @@ function updateControlReadouts() {
   ringSizeValue.textContent = Number(ringSize.value).toFixed(2);
   particleCountValue.textContent = particleCount.value;
   glowIntensityValue.textContent = Number(glowIntensity.value).toFixed(2);
-  visualContrastValue.textContent =
-    Number(visualContrast.value).toFixed(2);
 }
 
 // Reads CSS custom properties and updates state.colors
