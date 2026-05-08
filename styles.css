@@ -1,3 +1,6 @@
+/* ============================================
+   COLOR SET 1: DEFAULT THEME (Pink/Cyan Neon)
+   ============================================ */
 :root {
   --bg: #050507;
   --bg-deep: #020204;
@@ -19,6 +22,9 @@
   --font-main: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
+/* ============================================
+   COLOR SET 2: TOXIC AQUA (Lime/Aqua)
+   ============================================ */
 :root[data-theme="toxic-aqua"] {
   --accent: #9cff28;
   --accent-rgb: 156, 255, 40;
@@ -29,19 +35,25 @@
   --focus: rgba(32, 255, 214, 0.44);
 }
 
+/* ============================================
+   COLOR SET 3: ACID SHADOW (Acid Yellow/Black) ← YOU'RE HERE
+   ============================================ */
 [data-theme="acid-shadow"] {
   --accent: #f5c400;
-  --accent-two: #b8860b;
+  --accent-two: #0bb822;
   --accent-rgb: 245, 196, 0;
   --accent-two-rgb: 184, 134, 11;
-  --bg-deep: #050400;
+  --bg-deep: #0e2686;
   --bg-mid: #0c0900;
   --panel-bg: rgba(12, 9, 0, 0.82);
-  --panel-border: rgba(245, 196, 0, 0.14);
-  --text-primary: #e8d87a;
+  --panel-border: rgba(236, 235, 228, 0.877);
+  --text-primary: #130a13;
   --text-muted: #8a7a3a;
 }
 
+/* ============================================
+   COLOR SET 4: BLOOD VIOLET (Pink/Purple)
+   ============================================ */
 :root[data-theme="blood-violet"] {
   --accent: #ff2f74;
   --accent-rgb: 255, 47, 116;
@@ -263,19 +275,24 @@ input:focus-visible,
   filter: drop-shadow(0 0 14px rgba(var(--accent-two-rgb), 0.12));
 }
 
+/* ============================================
+   VISUALIZER BACKGROUND SETTINGS ← YOU'RE HERE
+   ============================================ */
 .visualizer-frame {
   position: relative;
   min-height: min(64vh, 620px);
   overflow: hidden;
-  border: 1px solid rgba(var(--accent-two-rgb), 0.2);
+  border: 1px solid rgba(var(--accent-two-rgb), 0.2);  /* BORDER: Uses accent-two color */
   border-radius: var(--radius);
   background:
-    radial-gradient(circle at center, rgba(var(--accent-rgb), 0.11), transparent 34%),
+    /* INNER GLOW: Center radial gradient using main accent color */
+    radial-gradient(circle at center, rgba(var(--accent-rgb), 0.11), transparent 32%),
+    /* BASE BACKGROUND: Dark gradient (these are the black tones you see) */
     linear-gradient(180deg, rgba(10, 12, 22, 0.92), rgba(2, 2, 6, 0.94));
   box-shadow:
-    0 30px 110px rgba(0, 0, 0, 0.48),
-    0 0 42px var(--shadow),
-    inset 0 0 64px rgba(var(--accent-two-rgb), 0.08);
+    0 30px 110px rgba(0, 0, 0, 0.48),  /* OUTER SHADOW: Deep black drop shadow */
+    0 0 42px var(--shadow),             /* OUTER GLOW: Uses theme shadow color */
+    inset 0 0 64px rgba(var(--accent-two-rgb), 0.08);  /* INNER EDGE GLOW: Soft accent-two glow */
 }
 
 #visualizerCanvas {
@@ -437,4 +454,204 @@ input[type="range"]::-moz-range-thumb {
   .primary-button {
     transition: none;
   }
+}
+
+/* ─── DEV THEME LAB ──────────────────────────────────── */
+
+.dev-theme-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+  padding: 0.45rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 180ms ease, color 180ms ease;
+}
+
+.dev-theme-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.dev-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 1.5rem;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+}
+
+.dev-panel[hidden] { display: none; }
+
+.dev-panel-inner {
+  width: 100%;
+  max-width: 420px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #0d0715;
+  border: 1px solid rgba(255, 47, 214, 0.25);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 0 40px rgba(255, 47, 214, 0.12);
+  position: relative;
+}
+
+.dev-panel-header {
+  margin-bottom: 1.25rem;
+  padding-right: 2rem;
+}
+
+.dev-panel-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.3rem;
+}
+
+.dev-panel-subtitle {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.dev-close-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  line-height: 1;
+}
+
+.dev-close-btn:hover { color: var(--text-primary); }
+
+.dev-section-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin: 1rem 0 0.5rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.dev-fields { display: flex; flex-direction: column; gap: 0.75rem; }
+
+.dev-field label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.35rem;
+}
+
+.dev-hint {
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.dev-color-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.dev-color-row input[type="color"] {
+  width: 40px;
+  height: 32px;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+  padding: 2px;
+  flex-shrink: 0;
+}
+
+.dev-hex {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  font-family: 'Courier New', monospace;
+  padding: 0.35rem 0.6rem;
+}
+
+.dev-hex:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.dev-actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.dev-action-btn {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 180ms ease;
+}
+
+.dev-reset-btn {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.12);
+  color: var(--text-muted);
+}
+
+.dev-reset-btn:hover {
+  background: rgba(255,255,255,0.1);
+  color: var(--text-primary);
+}
+
+.dev-copy-btn {
+  background: rgba(255, 47, 214, 0.15);
+  border-color: rgba(255, 47, 214, 0.35);
+  color: var(--accent);
+}
+
+.dev-copy-btn:hover {
+  background: rgba(255, 47, 214, 0.25);
+}
+
+.dev-css-output {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-family: 'Courier New', monospace;
+  color: var(--text-muted);
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 180px;
+  overflow-y: auto;
 }

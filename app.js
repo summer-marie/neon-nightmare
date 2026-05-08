@@ -709,3 +709,114 @@ function getIdleSubFont() {
 }
 
 init();
+
+(function devThemeLab() {
+  const toggle = document.getElementById("devThemeToggle");
+  const panel = document.getElementById("devThemePanel");
+  const closeBtn = document.getElementById("devPanelClose");
+  const resetBtn = document.getElementById("devResetColors");
+  const copyBtn = document.getElementById("devCopyCSS");
+  const cssOutput = document.getElementById("devCSSOutput");
+
+  const fields = [
+    { colorId: "dev-accent",        hexId: "dev-accent-hex",
+      cssVar: "--accent",           label: "--accent" },
+    { colorId: "dev-accent-two",    hexId: "dev-accent-two-hex",
+      cssVar: "--accent-two",       label: "--accent-two" },
+    { colorId: "dev-bg-deep",       hexId: "dev-bg-deep-hex",
+      cssVar: "--bg-deep",          label: "--bg-deep" },
+    { colorId: "dev-bg-mid",        hexId: "dev-bg-mid-hex",
+      cssVar: "--bg-mid",           label: "--bg-mid" },
+    { colorId: "dev-panel-bg",      hexId: "dev-panel-bg-hex",
+      cssVar: "--panel-bg-solid",   label: "--panel-bg (solid base)" },
+    { colorId: "dev-panel-border",  hexId: "dev-panel-border-hex",
+      cssVar: "--panel-border-solid", label: "--panel-border (solid base)" },
+    { colorId: "dev-text-primary",  hexId: "dev-text-primary-hex",
+      cssVar: "--text-primary",     label: "--text-primary" },
+    { colorId: "dev-text-muted",    hexId: "dev-text-muted-hex",
+      cssVar: "--text-muted",       label: "--text-muted" },
+  ];
+
+  function hexToRgb(hex) {
+    const r = parseInt(hex.slice(1,3),16);
+    const g = parseInt(hex.slice(3,5),16);
+    const b = parseInt(hex.slice(5,7),16);
+    return r + ", " + g + ", " + b;
+  }
+
+  function applyColor(cssVar, hex) {
+    document.documentElement.style.setProperty(cssVar, hex);
+    if (cssVar === "--accent") {
+      document.documentElement.style.setProperty("--accent-rgb", hexToRgb(hex));
+      updateThemeColors();
+    }
+    if (cssVar === "--accent-two") {
+      document.documentElement.style.setProperty("--accent-two-rgb", hexToRgb(hex));
+      updateThemeColors();
+    }
+  }
+
+  function syncHexToColor(field) {
+    const colorInput = document.getElementById(field.colorId);
+    const hexInput = document.getElementById(field.hexId);
+    colorInput.addEventListener("input", () => {
+      hexInput.value = colorInput.value;
+      applyColor(field.cssVar, colorInput.value);
+    });
+    hexInput.addEventListener("input", () => {
+      const val = hexInput.value.trim();
+      if (/^#[0-9a-fA-F]{6}$/.test(val)) {
+        colorInput.value = val;
+        applyColor(field.cssVar, val);
+      }
+    });
+  }
+
+  fields.forEach(syncHexToColor);
+
+  toggle.addEventListener("click", () => {
+    panel.hidden = false;
+    cssOutput.hidden = true;
+  });
+
+  closeBtn.addEventListener("click", () => {
+    panel.hidden = true;
+  });
+
+  panel.addEventListener("click", (e) => {
+    if (e.target === panel) panel.hidden = true;
+  });
+
+  resetBtn.addEventListener("click", () => {
+    const styles = getComputedStyle(document.documentElement);
+    fields.forEach(field => {
+      document.documentElement.style.removeProperty(field.cssVar);
+      if (field.cssVar === "--accent" || field.cssVar === "--accent-two") {
+        document.documentElement.style.removeProperty(field.cssVar + "-rgb");
+      }
+    });
+    updateThemeColors();
+    cssOutput.hidden = true;
+  });
+
+  copyBtn.addEventListener("click", () => {
+    const themeName = "my-custom-theme";
+    let block = "[data-theme=\"" + themeName + "\"] {\n";
+    fields.forEach(field => {
+      const colorInput = document.getElementById(field.colorId);
+      block += "  " + field.cssVar + ": " + colorInput.value + ";\n";
+      if (field.cssVar === "--accent") {
+        block += "  --accent-rgb: " + hexToRgb(colorInput.value) + ";\n";
+      }
+      if (field.cssVar === "--accent-two") {
+        block += "  --accent-two-rgb: " + hexToRgb(colorInput.value) + ";\n";
+      }
+    });
+    block += "}";
+    cssOutput.textContent = block;
+    cssOutput.hidden = false;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(block).catch(() => {});
+    }
+  });
+})();

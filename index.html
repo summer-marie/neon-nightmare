@@ -120,8 +120,138 @@
 
       <footer class="footer-note text-center mt-6">
         Local files stay in your browser. No streaming logins, no backend, no external audio APIs.
+        <button id="devThemeToggle" type="button" class="dev-theme-btn">
+          🎨 Test Color Theme
+        </button>
       </footer>
     </main>
+  </div>
+
+  <div id="devThemePanel" class="dev-panel" aria-label="Developer color theme tester" hidden>
+    <div class="dev-panel-inner">
+
+      <div class="dev-panel-header">
+        <h2 class="dev-panel-title">🎨 Color Theme Lab</h2>
+        <p class="dev-panel-subtitle">
+          Live-edit CSS color variables. Changes apply instantly to the visualizer.
+          No existing themes are touched.
+        </p>
+        <button id="devPanelClose" type="button" class="dev-close-btn"
+          aria-label="Close theme lab">✕</button>
+      </div>
+
+      <div class="dev-fields">
+
+        <div class="dev-section-label">ACCENT COLORS</div>
+
+        <div class="dev-field">
+          <label for="dev-accent">Primary Accent
+            <span class="dev-hint">Main glow color — rings, sphere edges, ripples</span>
+          </label>
+          <div class="dev-color-row">
+            <input type="color" id="dev-accent" data-var="--accent" value="#ff2fd6">
+            <input type="text" id="dev-accent-hex" class="dev-hex" value="#ff2fd6"
+              maxlength="7" spellcheck="false">
+          </div>
+        </div>
+
+        <div class="dev-field">
+          <label for="dev-accent-two">Secondary Accent
+            <span class="dev-hint">Second glow color — alternating rings, ripples, particles</span>
+          </label>
+          <div class="dev-color-row">
+            <input type="color" id="dev-accent-two" data-var="--accent-two" value="#22e8ff">
+            <input type="text" id="dev-accent-two-hex" class="dev-hex" value="#22e8ff"
+              maxlength="7" spellcheck="false">
+          </div>
+        </div>
+
+        <div class="dev-section-label">BACKGROUND COLORS</div>
+
+        <div class="dev-field">
+          <label for="dev-bg-deep">Deep Background
+            <span class="dev-hint">Darkest background layer — outermost canvas edge</span>
+          </label>
+          <div class="dev-color-row">
+            <input type="color" id="dev-bg-deep" data-var="--bg-deep" value="#020206">
+            <input type="text" id="dev-bg-deep-hex" class="dev-hex" value="#020206"
+              maxlength="7" spellcheck="false">
+          </div>
+        </div>
+
+        <div class="dev-field">
+          <label for="dev-bg-mid">Mid Background
+            <span class="dev-hint">Secondary background — canvas inner glow area</span>
+          </label>
+          <div class="dev-color-row">
+            <input type="color" id="dev-bg-mid" data-var="--bg-mid" value="#07030f">
+            <input type="text" id="dev-bg-mid-hex" class="dev-hex" value="#07030f"
+              maxlength="7" spellcheck="false">
+          </div>
+        </div>
+
+        <div class="dev-section-label">PANEL &amp; GLASS</div>
+
+        <div class="dev-field">
+          <label for="dev-panel-bg">Panel Background
+            <span class="dev-hint">Glass card background — control deck and upload panel</span>
+          </label>
+          <div class="dev-color-row">
+            <input type="color" id="dev-panel-bg" data-var="--panel-bg-solid" value="#0d0715">
+            <input type="text" id="dev-panel-bg-hex" class="dev-hex" value="#0d0715"
+              maxlength="7" spellcheck="false">
+          </div>
+        </div>
+
+        <div class="dev-field">
+          <label for="dev-panel-border">Panel Border
+            <span class="dev-hint">Glass panel edge glow color</span>
+          </label>
+          <div class="dev-color-row">
+            <input type="color" id="dev-panel-border" data-var="--panel-border-solid" value="#ff2fd6">
+            <input type="text" id="dev-panel-border-hex" class="dev-hex" value="#ff2fd6"
+              maxlength="7" spellcheck="false">
+          </div>
+        </div>
+
+        <div class="dev-section-label">TEXT COLORS</div>
+
+        <div class="dev-field">
+          <label for="dev-text-primary">Primary Text
+            <span class="dev-hint">Main headings and labels</span>
+          </label>
+          <div class="dev-color-row">
+            <input type="color" id="dev-text-primary" data-var="--text-primary" value="#f0e6ff">
+            <input type="text" id="dev-text-primary-hex" class="dev-hex" value="#f0e6ff"
+              maxlength="7" spellcheck="false">
+          </div>
+        </div>
+
+        <div class="dev-field">
+          <label for="dev-text-muted">Muted Text
+            <span class="dev-hint">Subtitles, hints, status text</span>
+          </label>
+          <div class="dev-color-row">
+            <input type="color" id="dev-text-muted" data-var="--text-muted" value="#8a7fa8">
+            <input type="text" id="dev-text-muted-hex" class="dev-hex" value="#8a7fa8"
+              maxlength="7" spellcheck="false">
+          </div>
+        </div>
+
+      </div>
+
+      <div class="dev-actions">
+        <button id="devResetColors" type="button" class="dev-action-btn dev-reset-btn">
+          Reset to Current Preset
+        </button>
+        <button id="devCopyCSS" type="button" class="dev-action-btn dev-copy-btn">
+          Copy as CSS Theme Block
+        </button>
+      </div>
+
+      <pre id="devCSSOutput" class="dev-css-output" hidden></pre>
+
+    </div>
   </div>
 
   <script src="app.js"></script>
