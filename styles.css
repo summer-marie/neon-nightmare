@@ -547,8 +547,8 @@ input[type="range"]::-moz-range-thumb {
   align-items: flex-start;
   justify-content: flex-end;
   padding: 1.5rem;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(4px);
+  background: transparent;
+  pointer-events: none;
 }
 
 .dev-panel[hidden] { display: none; }
@@ -564,6 +564,7 @@ input[type="range"]::-moz-range-thumb {
   padding: 1.5rem;
   box-shadow: 0 0 40px rgba(255, 47, 214, 0.12);
   position: relative;
+  pointer-events: all;
 }
 
 .dev-panel-header {

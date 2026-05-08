@@ -600,73 +600,97 @@ function drawBars(audio) {
   const cx = W / 2;
   const cy = H / 2;
 
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, W, H);
+  ctx.clip();
+
   // Number of bars — use fewer bins for chunkier visible bars
   const totalBars = 64;
   const binStep = Math.floor(state.frequencyData.length / totalBars);
   const barW = (W * 0.82) / totalBars;
   const gap = barW * 0.18;
-  const startX = cx - (totalBars / 2) * barW;
   const maxBarH = H * 0.72;
   const bassBoost = state.controls.bassSensitivity ?? 1.5;
   const sens = state.controls.sensitivity;
 
-  for (let i = 0; i < totalBars; i++) {
-    // Average a small bin range for smoother bars
+  const half = Math.floor(totalBars / 2);
+
+  for (let i = 0; i < half; i++) {
+    // Average bin range
     let sum = 0;
     for (let k = 0; k < binStep; k++) {
       sum += state.frequencyData[i * binStep + k] || 0;
     }
     const raw = sum / binStep / 255;
+    const isBass = i < 6;
+    const boosted = Math.min(1, raw * sens * (isBass ? bassBoost * 1.6 : 1));
+    const maxAllowedH = cy + H * 0.08;
+    const barH = Math.max(3, Math.min(boosted * maxBarH, maxAllowedH - 4));
 
-    // Extra bass boost for the first 12 bars (sub-bass and bass range)
-    const isBass = i < 12;
-    const boosted = Math.min(1, raw * sens * (isBass ? bassBoost * 1.6 : sens));
-
-    const barH = Math.max(3, boosted * maxBarH);
-    const x = startX + i * barW;
-    const y = cy + H * 0.08 - barH; // anchor bars to a baseline below center
-
-    // Color: bass bars use accent, mid/high use accentTwo, blend in between
-    const t = i / totalBars;
+    const t = i / half;
     const [r1, g1, b1] = state.colors.accentRgb;
     const [r2, g2, b2] = state.colors.accentTwoRgb;
     const r = Math.round(r1 + (r2 - r1) * t);
     const g = Math.round(g1 + (g2 - g1) * t);
     const b = Math.round(b1 + (b2 - b1) * t);
 
-    // Glow
     ctx.shadowBlur = isBass ? 18 + boosted * 28 : 10 + boosted * 14;
     ctx.shadowColor = `rgba(${r},${g},${b},0.9)`;
 
-    // Bar gradient — bright top, fades to transparent at baseline
-    const grad = ctx.createLinearGradient(x, y, x, y + barH);
-    grad.addColorStop(0,   `rgba(${r},${g},${b},${0.85 + boosted * 0.15})`);
-    grad.addColorStop(0.6, `rgba(${r},${g},${b},0.5)`);
-    grad.addColorStop(1,   `rgba(${r},${g},${b},0.08)`);
+    // Right side bar (mirror index from center going right)
+    const xRight = cx + i * barW;
+    const yBar = cy + H * 0.08 - barH;
 
-    ctx.fillStyle = grad;
+    const gradR = ctx.createLinearGradient(xRight, yBar, xRight, yBar + barH);
+    gradR.addColorStop(0,   `rgba(${r},${g},${b},${0.85 + boosted * 0.15})`);
+    gradR.addColorStop(0.6, `rgba(${r},${g},${b},0.5)`);
+    gradR.addColorStop(1,   `rgba(${r},${g},${b},0.08)`);
+    ctx.fillStyle = gradR;
     ctx.beginPath();
-    ctx.roundRect(x + gap / 2, y, barW - gap, barH, [3, 3, 0, 0]);
+    ctx.roundRect(xRight + gap / 2, yBar, barW - gap, barH, [3, 3, 0, 0]);
     ctx.fill();
 
-    // Top cap glow dot on each bar
+    // Top cap right
     ctx.shadowBlur = 12;
     ctx.fillStyle = `rgba(${r},${g},${b},0.95)`;
     ctx.beginPath();
-    ctx.arc(x + barW / 2, y, 2.5, 0, Math.PI * 2);
+    ctx.arc(xRight + barW / 2, yBar, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Left side bar (mirror of right, going left from center)
+    const xLeft = cx - (i + 1) * barW;
+
+    const gradL = ctx.createLinearGradient(xLeft, yBar, xLeft, yBar + barH);
+    gradL.addColorStop(0,   `rgba(${r},${g},${b},${0.85 + boosted * 0.15})`);
+    gradL.addColorStop(0.6, `rgba(${r},${g},${b},0.5)`);
+    gradL.addColorStop(1,   `rgba(${r},${g},${b},0.08)`);
+    ctx.fillStyle = gradL;
+    ctx.beginPath();
+    ctx.roundRect(xLeft + gap / 2, yBar, barW - gap, barH, [3, 3, 0, 0]);
+    ctx.fill();
+
+    // Top cap left
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = `rgba(${r},${g},${b},0.95)`;
+    ctx.beginPath();
+    ctx.arc(xLeft + barW / 2, yBar, 2.5, 0, Math.PI * 2);
     ctx.fill();
   }
 
   // Baseline divider line
   ctx.shadowBlur = 0;
   const baseY = cy + H * 0.08;
-  ctx.strokeStyle = `rgba(${state.colors.accentRgb[0]},${state.colors.accentRgb[1]},${state.colors.accentRgb[2]},0.2)`;
+  const totalWidth = totalBars * barW;
+  ctx.strokeStyle = `rgba(${state.colors.accentRgb[0]},
+    ${state.colors.accentRgb[1]},${state.colors.accentRgb[2]},0.2)`;
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(startX, baseY);
-  ctx.lineTo(startX + totalBars * barW, baseY);
+  ctx.moveTo(cx - totalWidth / 2, baseY);
+  ctx.lineTo(cx + totalWidth / 2, baseY);
   ctx.stroke();
-  ctx.shadowBlur = 0;
+
+  ctx.restore();
 }
 
 // ========== PARTICLE MANAGEMENT ==========
@@ -968,10 +992,6 @@ init();
 
   closeBtn.addEventListener("click", () => {
     panel.hidden = true;
-  });
-
-  panel.addEventListener("click", (e) => {
-    if (e.target === panel) panel.hidden = true;
   });
 
   resetBtn.addEventListener("click", () => {
