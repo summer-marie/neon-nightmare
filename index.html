@@ -127,6 +127,38 @@
                 value="1.5" step="0.05">
             </div>
 
+            <!-- Background glow toggle -->
+            <div class="control-field">
+              <label for="glowToggle">Background Glow</label>
+              <div class="toggle-row">
+                <button id="glowToggle" type="button" class="toggle-btn is-on"
+                  aria-pressed="true" aria-label="Toggle background glow">
+                  ON
+                </button>
+                <span id="glowToggleHint" class="mini-note">Glow is active</span>
+              </div>
+            </div>
+
+            <!-- Glow intensity slider -->
+            <div class="slider-field">
+              <div class="flex items-center justify-between gap-3">
+                <label for="glowIntensity">Glow Intensity</label>
+                <output id="glowIntensityValue" for="glowIntensity">1.00</output>
+              </div>
+              <input id="glowIntensity" type="range" min="0" max="1"
+                value="1" step="0.05">
+            </div>
+
+            <!-- Visual contrast slider -->
+            <div class="slider-field">
+              <div class="flex items-center justify-between gap-3">
+                <label for="visualContrast">Visual Contrast</label>
+                <output id="visualContrastValue" for="visualContrast">1.00</output>
+              </div>
+              <input id="visualContrast" type="range" min="0.4" max="2.0"
+                value="1" step="0.05">
+            </div>
+
             <!-- Ring/sphere scale multiplier -->
             <div class="slider-field">
               <div class="flex items-center justify-between gap-3">

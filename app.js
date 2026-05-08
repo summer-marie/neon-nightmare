@@ -38,6 +38,12 @@ const sensitivityValue = document.getElementById("sensitivityValue");
 const bassSensitivityValue = document.getElementById("bassSensitivityValue");
 const ringSizeValue = document.getElementById("ringSizeValue");
 const particleCountValue = document.getElementById("particleCountValue");
+const glowToggle = document.getElementById("glowToggle");
+const glowToggleHint = document.getElementById("glowToggleHint");
+const glowIntensity = document.getElementById("glowIntensity");
+const glowIntensityValue = document.getElementById("glowIntensityValue");
+const visualContrast = document.getElementById("visualContrast");
+const visualContrastValue = document.getElementById("visualContrastValue");
 const canvas = document.getElementById("visualizerCanvas");
 const ctx = canvas.getContext("2d");
 
@@ -79,7 +85,10 @@ const state = {
     sensitivity: Number(sensitivity.value),
     bassSensitivity: Number(bassSensitivity.value),
     ringSize: Number(ringSize.value),
-    particleCount: Number(particleCount.value)
+    particleCount: Number(particleCount.value),
+    glowOn: true,
+    glowIntensity: 1.0,
+    visualContrast: 1.0
   },
   
   // Current theme colors (updated from CSS variables)
@@ -151,6 +160,27 @@ function init() {
     state.controls.particleCount = Number(particleCount.value);
     updateControlReadouts();
     syncParticles();
+  });
+
+  glowToggle.addEventListener("click", () => {
+    state.controls.glowOn = !state.controls.glowOn;
+    glowToggle.classList.toggle("is-on", state.controls.glowOn);
+    glowToggle.classList.toggle("is-off", !state.controls.glowOn);
+    glowToggle.textContent = state.controls.glowOn ? "ON" : "OFF";
+    glowToggle.setAttribute("aria-pressed", String(state.controls.glowOn));
+    glowToggleHint.textContent = state.controls.glowOn
+      ? "Glow is active"
+      : "Glow is off";
+  });
+
+  glowIntensity.addEventListener("input", () => {
+    state.controls.glowIntensity = Number(glowIntensity.value);
+    updateControlReadouts();
+  });
+
+  visualContrast.addEventListener("input", () => {
+    state.controls.visualContrast = Number(visualContrast.value);
+    updateControlReadouts();
   });
 }
 
@@ -253,6 +283,10 @@ async function setupAudioGraph() {
 function drawFrame(now = 0) {
   updateCanvasSize();
 
+  ctx.filter = state.controls.visualContrast !== 1.0
+    ? `contrast(${state.controls.visualContrast})`
+    : "none";
+
   // Get current audio data (frequency + waveform)
   const audio = readAudioData();
   
@@ -296,6 +330,8 @@ function drawFrame(now = 0) {
       }
     }
   }
+
+  ctx.filter = "none";
 
   requestAnimationFrame(drawFrame);  // Loop
 }
@@ -369,37 +405,47 @@ function paintBackground(audio) {
   const height = canvas.height;
   const centerX = width / 2;
   const centerY = height / 2;
-  const glowRadius = Math.max(width, height) * (0.46 + audio.bass * 0.12);
-  const background = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, glowRadius);
 
-  background.addColorStop(0, rgba(state.colors.accentRgb, 0.13 + audio.volume * 0.16));
-  background.addColorStop(0.34, rgba(state.colors.accentTwoRgb, 0.07 + audio.bass * 0.12));
-  background.addColorStop(1, "rgba(2, 2, 6, 0.96)");
+  if (state.controls.glowOn) {
+    ctx.globalAlpha = state.controls.glowIntensity;
+    const glowRadius = Math.max(width, height) * (0.46 + audio.bass * 0.12);
+    const background = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, glowRadius);
 
-  ctx.fillStyle = background;
-  ctx.fillRect(0, 0, width, height);
+    background.addColorStop(0, rgba(state.colors.accentRgb, 0.13 + audio.volume * 0.16));
+    background.addColorStop(0.34, rgba(state.colors.accentTwoRgb, 0.07 + audio.bass * 0.12));
+    background.addColorStop(1, "rgba(2, 2, 6, 0.96)");
 
-  ctx.save();
-  ctx.globalAlpha = 0.15 + audio.treble * 0.12;
-  ctx.strokeStyle = rgba(state.colors.accentTwoRgb, 0.3);
-  ctx.lineWidth = 1;
-
-  const spacing = Math.max(28, Math.floor(width / 22));
-  for (let x = 0; x < width; x += spacing) {
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x + audio.bass * 18, height);
-    ctx.stroke();
+    ctx.fillStyle = background;
+    ctx.fillRect(0, 0, width, height);
+    ctx.globalAlpha = 1;
+  } else {
+    ctx.fillStyle = "rgba(2, 2, 6, 0.96)";
+    ctx.fillRect(0, 0, width, height);
   }
 
-  for (let y = 0; y < height; y += spacing) {
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(width, y + audio.volume * 10);
-    ctx.stroke();
-  }
+  if (state.controls.glowOn) {
+    ctx.save();
+    ctx.globalAlpha = (0.15 + audio.treble * 0.12) * state.controls.glowIntensity;
+    ctx.strokeStyle = rgba(state.colors.accentTwoRgb, 0.3);
+    ctx.lineWidth = 1;
 
-  ctx.restore();
+    const spacing = Math.max(28, Math.floor(width / 22));
+    for (let x = 0; x < width; x += spacing) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x + audio.bass * 18, height);
+      ctx.stroke();
+    }
+
+    for (let y = 0; y < height; y += spacing) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(width, y + audio.volume * 10);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
 }
 
 // ========== 3D SPHERE DRAWING ==========
@@ -412,7 +458,7 @@ function drawSphere(audio, intensity) {
   const centerY = height / 2;
   const latSteps = 10;
   const lonSteps = 18;
-  const scale = Math.min(width, height) * 0.36 * state.controls.ringSize;
+  const scale = Math.min(Math.min(width, height) * 0.36 * state.controls.ringSize, Math.min(width, height) * 0.40);
   const pulse = 1 + audio.bass * 0.25;
   const sphereScale = scale * pulse;
   const edgeAlpha = (0.12 + audio.volume * 0.42) * intensity;
@@ -629,7 +675,7 @@ function drawBars(audio) {
   const binStep = Math.floor(state.frequencyData.length / totalBars);
   const barW = (W * 0.82) / totalBars;
   const gap = barW * 0.18;
-  const maxBarH = H - 20;
+  const maxBarH = Math.min(H - 20, H * 0.80);
   const bassBoost = state.controls.bassSensitivity ?? 1.5;
   const sens = state.controls.sensitivity;
 
@@ -644,7 +690,7 @@ function drawBars(audio) {
     const raw = sum / binStep / 255;
     const isBass = i < 6;
     const boosted = Math.min(1, raw * sens * (isBass ? bassBoost * 1.6 : 1));
-    const maxAllowedH = H - 8;
+    const maxAllowedH = Math.min(H - 8, H * 0.80);
     const barH = Math.max(3, Math.min(boosted * maxBarH, maxAllowedH - 4));
 
     const t = i / half;
@@ -895,6 +941,9 @@ function updateControlReadouts() {
     Number(bassSensitivity.value).toFixed(2);
   ringSizeValue.textContent = Number(ringSize.value).toFixed(2);
   particleCountValue.textContent = particleCount.value;
+  glowIntensityValue.textContent = Number(glowIntensity.value).toFixed(2);
+  visualContrastValue.textContent =
+    Number(visualContrast.value).toFixed(2);
 }
 
 // Reads CSS custom properties and updates state.colors
