@@ -267,10 +267,29 @@ function drawFrame(now = 0) {
     // Draw based on selected mode
     if (state.controls.mode === "bars") {
       drawBars(audio);
+
+    } else if (state.controls.mode === "bars-rings") {
+      // Layer order: bars at bottom, then sphere/rings, then ripples on top
+      drawBars(audio);
+
+      if (typeof drawSphere === "function") {
+        drawSphere(audio, 1);
+      } else if (typeof drawRings === "function") {
+        drawRings(audio, 1);
+      }
+
+      updateRipples(audio, now);
+      drawRipples(audio, 0.6);
+
     } else {
       if (state.controls.mode === "rings" || state.controls.mode === "both") {
-        drawSphere(audio, state.controls.mode === "both" ? 0.86 : 1);
+        if (typeof drawSphere === "function") {
+          drawSphere(audio, state.controls.mode === "both" ? 0.86 : 1);
+        } else if (typeof drawRings === "function") {
+          drawRings(audio, state.controls.mode === "both" ? 0.86 : 1);
+        }
       }
+
       if (state.controls.mode === "ripples" || state.controls.mode === "both") {
         updateRipples(audio, now);
         drawRipples(audio, state.controls.mode === "both" ? 0.75 : 1);
@@ -610,7 +629,7 @@ function drawBars(audio) {
   const binStep = Math.floor(state.frequencyData.length / totalBars);
   const barW = (W * 0.82) / totalBars;
   const gap = barW * 0.18;
-  const maxBarH = H * 0.72;
+  const maxBarH = H - 20;
   const bassBoost = state.controls.bassSensitivity ?? 1.5;
   const sens = state.controls.sensitivity;
 
@@ -625,7 +644,7 @@ function drawBars(audio) {
     const raw = sum / binStep / 255;
     const isBass = i < 6;
     const boosted = Math.min(1, raw * sens * (isBass ? bassBoost * 1.6 : 1));
-    const maxAllowedH = cy + H * 0.08;
+    const maxAllowedH = H - 8;
     const barH = Math.max(3, Math.min(boosted * maxBarH, maxAllowedH - 4));
 
     const t = i / half;
@@ -640,7 +659,7 @@ function drawBars(audio) {
 
     // Right side bar (mirror index from center going right)
     const xRight = cx + i * barW;
-    const yBar = cy + H * 0.08 - barH;
+    const yBar = H - 8 - barH;
 
     const gradR = ctx.createLinearGradient(xRight, yBar, xRight, yBar + barH);
     gradR.addColorStop(0,   `rgba(${r},${g},${b},${0.85 + boosted * 0.15})`);
@@ -680,7 +699,7 @@ function drawBars(audio) {
 
   // Baseline divider line
   ctx.shadowBlur = 0;
-  const baseY = cy + H * 0.08;
+  const baseY = H - 8;
   const totalWidth = totalBars * barW;
   ctx.strokeStyle = `rgba(${state.colors.accentRgb[0]},
     ${state.colors.accentRgb[1]},${state.colors.accentRgb[2]},0.2)`;
