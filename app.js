@@ -100,6 +100,9 @@ const state = {
   }
 };
 
+// Bar smoothing buffer for zone-specific response
+state.barSmooth = new Float32Array(64).fill(0);
+
 // ========== INITIALIZATION ==========
 // Sets up canvas, controls, and all event listeners
 function init() {
@@ -205,6 +208,7 @@ function handleFileUpload(event) {
   state.lastPeak = 0;
   state.smoothedVolume = 0;
   state.smoothedBass = 0;
+  if (state.barSmooth) state.barSmooth.fill(0);
   fileName.textContent = file.name;
   statusText.textContent = "Loaded: " + file.name;
   playPauseButton.textContent = "Play";
@@ -494,10 +498,13 @@ function drawSphere(audio, intensity) {
     vertices.push(row);
   }
 
+  const shadow = getThemeShadow(0.7 + audio.volume * 0.8);
+
   ctx.save();
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
-  ctx.shadowBlur = 14 + audio.bass * 42;
+  ctx.shadowBlur = shadow.primaryBlur * (1 + audio.bass * 1.2);
+  ctx.shadowColor = shadow.primaryColor;
 
   for (let lat = 0; lat < latSteps; lat += 1) {
     for (let lon = 0; lon < lonSteps; lon += 1) {
@@ -533,8 +540,8 @@ function drawSphere(audio, intensity) {
       ctx.lineTo(endX, endY);
       ctx.strokeStyle = rgba(rgb, alpha);
       ctx.lineWidth = 0.8 + audio.treble * 3.2 + audio.volume * 1.2;
-      ctx.shadowBlur = 16 + audio.bass * 46 + audio.treble * 20;
-      ctx.shadowColor = color;
+      ctx.shadowBlur = shadow.spikeBlur * (1 + audio.bass * 1.5);
+      ctx.shadowColor = shadow.secondaryColor;
       ctx.stroke();
     }
   }
@@ -545,6 +552,8 @@ function drawSphere(audio, intensity) {
   core.addColorStop(0.42, rgba(state.colors.accentRgb, 0.22));
   core.addColorStop(1, "rgba(0, 0, 0, 0)");
   ctx.fillStyle = core;
+  ctx.shadowBlur = shadow.coreBlur * (1 + audio.bass * 0.8);
+  ctx.shadowColor = shadow.primaryColor;
   ctx.beginPath();
   ctx.arc(centerX, centerY, coreRadius * 2.8, 0, Math.PI * 2);
   ctx.fill();
@@ -630,6 +639,8 @@ function drawRipples(audio, intensity) {
   const centerX = canvas.width / 2;
   const centerY = canvas.height / 2;
 
+  const shadow = getThemeShadow(0.6 + audio.volume * 0.5);
+
   ctx.save();
   ctx.translate(centerX, centerY);
 
@@ -641,8 +652,8 @@ function drawRipples(audio, intensity) {
     ctx.arc(0, 0, ripple.radius + distortion, 0, Math.PI * 2);
     ctx.strokeStyle = rgba(rgb, ripple.alpha * intensity);
     ctx.lineWidth = ripple.width;
-    ctx.shadowBlur = 20 + audio.volume * 24;
-    ctx.shadowColor = ripple.color === "accent" ? state.colors.accent : state.colors.accentTwo;
+    ctx.shadowBlur = shadow.secondaryBlur * (1 + audio.bass * 0.6);
+    ctx.shadowColor = shadow.secondaryColor;
     ctx.stroke();
 
     ctx.beginPath();
@@ -653,6 +664,49 @@ function drawRipples(audio, intensity) {
   }
 
   ctx.restore();
+}
+
+function getThemeShadow(intensity = 1) {
+  const theme = state.controls.theme;
+  const [r, g, b] = state.colors.accentRgb;
+  const [r2, g2, b2] = state.colors.accentTwoRgb;
+
+  const profiles = {
+    "magenta-cyan": {
+      primaryBlur:   22 * intensity,
+      secondaryBlur: 16 * intensity,
+      primaryColor:  `rgba(${r},${g},${b},0.95)`,
+      secondaryColor:`rgba(${r2},${g2},${b2},0.85)`,
+      coreBlur:      38 * intensity,
+      spikeBlur:     20 * intensity,
+    },
+    "toxic-aqua": {
+      primaryBlur:   28 * intensity,
+      secondaryBlur: 18 * intensity,
+      primaryColor:  `rgba(${r},${g},${b},0.98)`,
+      secondaryColor:`rgba(${r2},${g2},${b2},0.88)`,
+      coreBlur:      44 * intensity,
+      spikeBlur:     26 * intensity,
+    },
+    "blood-violet": {
+      primaryBlur:   18 * intensity,
+      secondaryBlur: 14 * intensity,
+      primaryColor:  `rgba(${r},${g},${b},0.9)`,
+      secondaryColor:`rgba(${r2},${g2},${b2},0.8)`,
+      coreBlur:      32 * intensity,
+      spikeBlur:     16 * intensity,
+    },
+    "acid-shadow": {
+      primaryBlur:   32 * intensity,
+      secondaryBlur: 20 * intensity,
+      primaryColor:  `rgba(${r},${g},${b},1.0)`,
+      secondaryColor:`rgba(${r2},${g2},${b2},0.9)`,
+      coreBlur:      50 * intensity,
+      spikeBlur:     30 * intensity,
+    },
+  };
+
+  return profiles[theme] || profiles["magenta-cyan"];
 }
 
 function drawBars(audio) {
@@ -682,14 +736,36 @@ function drawBars(audio) {
   const half = Math.floor(totalBars / 2);
 
   for (let i = 0; i < half; i++) {
-    // Average bin range
+    // Get raw frequency value for this bar index i
     let sum = 0;
     for (let k = 0; k < binStep; k++) {
       sum += state.frequencyData[i * binStep + k] || 0;
     }
     const raw = sum / binStep / 255;
+
+    // Zone-based smoothing factor
+    // i=0 is center (bass), i=half-1 is edge (treble)
+    // Bass zone (i < 6): smoothing 0.18 — fast, punchy
+    // Mid zone (i 6-14): smoothing 0.38 — moderate
+    // Treble zone (i >= 15): smoothing 0.55 — slow, calm
+    let smoothFactor;
+    if (i < 6) {
+      smoothFactor = 0.18;
+    } else if (i < 15) {
+      smoothFactor = 0.38;
+    } else {
+      smoothFactor = 0.55;
+    }
+
+    // Apply smoothing: blend toward new value at smoothFactor rate
+    // Higher smoothFactor = slower to change = less jumpy
+    state.barSmooth[i] = state.barSmooth[i] * (1 - smoothFactor)
+      + raw * smoothFactor;
+
+    const smoothed = state.barSmooth[i];
     const isBass = i < 6;
-    const boosted = Math.min(1, raw * sens * (isBass ? bassBoost * 1.6 : 1));
+    const boosted = Math.min(1,
+      smoothed * sens * (isBass ? bassBoost * 1.6 : 1));
     const maxAllowedH = Math.min(H - 8, H * 0.80);
     const barH = Math.max(3, Math.min(boosted * maxBarH, maxAllowedH - 4));
 
@@ -700,8 +776,13 @@ function drawBars(audio) {
     const g = Math.round(g1 + (g2 - g1) * t);
     const b = Math.round(b1 + (b2 - b1) * t);
 
-    ctx.shadowBlur = isBass ? 18 + boosted * 28 : 10 + boosted * 14;
-    ctx.shadowColor = `rgba(${r},${g},${b},0.9)`;
+    const shadow = getThemeShadow(0.8 + boosted * 0.6);
+    ctx.shadowBlur = isBass
+      ? shadow.coreBlur * (1 + boosted * 0.5)
+      : shadow.primaryBlur * (0.6 + boosted * 0.4);
+    ctx.shadowColor = isBass
+      ? shadow.primaryColor
+      : shadow.secondaryColor;
 
     // Right side bar (mirror index from center going right)
     const xRight = cx + i * barW;
@@ -717,7 +798,7 @@ function drawBars(audio) {
     ctx.fill();
 
     // Top cap right
-    ctx.shadowBlur = 12;
+    ctx.shadowBlur = shadow.primaryBlur * 0.7;
     ctx.fillStyle = `rgba(${r},${g},${b},0.95)`;
     ctx.beginPath();
     ctx.arc(xRight + barW / 2, yBar, 2.5, 0, Math.PI * 2);
@@ -736,7 +817,7 @@ function drawBars(audio) {
     ctx.fill();
 
     // Top cap left
-    ctx.shadowBlur = 12;
+    ctx.shadowBlur = shadow.primaryBlur * 0.7;
     ctx.fillStyle = `rgba(${r},${g},${b},0.95)`;
     ctx.beginPath();
     ctx.arc(xLeft + barW / 2, yBar, 2.5, 0, Math.PI * 2);
