@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="magenta-cyan">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Neon Nightmare Visualizer Lite, a static local-audio cyberpunk canvas visualizer.">
+  <title>Neon Nightmare Visualizer Lite</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="site-shell min-h-screen flex items-center justify-center px-4 py-6 md:px-6 md:py-10">
+    <main class="app-wrap w-full max-w-6xl">
+      <header class="hero-copy text-center mb-6 md:mb-8">
+        <p class="eyebrow">Local signal only</p>
+        <h1>Neon Nightmare Visualizer Lite</h1>
+        <p class="subtitle mx-auto mt-3">
+          Upload an audio file, press play, and let the corrupted nightclub system translate bass into rings, ripples, and drifting neon static.
+        </p>
+      </header>
+
+      <section class="glass-panel p-4 md:p-5 mb-5" aria-labelledby="upload-heading">
+        <div class="grid gap-4 md:grid-cols-[1.1fr_1fr] md:items-center">
+          <div>
+            <h2 id="upload-heading" class="section-title">Audio Source</h2>
+            <p id="statusText" class="status-text mt-1">No file loaded. The visualizer is idling in standby.</p>
+          </div>
+
+          <div class="upload-row flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+            <label class="upload-button" for="audioUpload">
+              <span>Choose Audio File</span>
+            </label>
+            <input id="audioUpload" class="sr-only" type="file" accept="audio/*">
+            <span id="fileName" class="file-name" aria-live="polite">Waiting for signal</span>
+          </div>
+        </div>
+
+        <audio id="audioPlayer" class="audio-player mt-4 w-full" controls preload="metadata"></audio>
+      </section>
+
+      <section class="grid gap-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(300px,0.75fr)]">
+        <div class="visualizer-frame">
+          <canvas id="visualizerCanvas" aria-label="Audio reactive neon visualizer"></canvas>
+          <div class="canvas-vignette" aria-hidden="true"></div>
+        </div>
+
+        <aside class="glass-panel control-panel p-4 md:p-5" aria-label="Visualizer controls">
+          <div class="flex items-center justify-between gap-3 mb-4">
+            <div>
+              <h2 class="section-title">Control Deck</h2>
+              <p class="mini-note">All changes update live.</p>
+            </div>
+            <button id="playPauseButton" class="primary-button" type="button">Play</button>
+          </div>
+
+          <div class="control-stack grid gap-4">
+            <div class="control-field">
+              <label for="visualMode">Visual Mode</label>
+              <select id="visualMode">
+                <option value="rings">Rings</option>
+                <option value="ripples">Ripples</option>
+                <option value="both" selected>Both</option>
+              </select>
+            </div>
+
+            <div class="control-field">
+              <label for="particleStyle">Particle Style</label>
+              <select id="particleStyle">
+                <option value="bubbles">Soft bubbles</option>
+                <option value="dust" selected>Glowing dust</option>
+                <option value="sparks">Corrupted digital sparks</option>
+              </select>
+            </div>
+
+            <div class="control-field">
+              <label for="colorPreset">Color Preset</label>
+              <select id="colorPreset">
+                <option value="magenta-cyan" selected>Magenta + cyan</option>
+                <option value="toxic-aqua">Toxic green + aqua</option>
+                <option value="blood-violet">Blood pink + violet</option>
+              </select>
+            </div>
+
+            <div class="slider-field">
+              <div class="flex items-center justify-between gap-3">
+                <label for="sensitivity">Sensitivity</label>
+                <output id="sensitivityValue" for="sensitivity">1.25</output>
+              </div>
+              <input id="sensitivity" type="range" min="0.5" max="2.5" value="1.25" step="0.05">
+            </div>
+
+            <div class="slider-field">
+              <div class="flex items-center justify-between gap-3">
+                <label for="ringSize">Ring Size</label>
+                <output id="ringSizeValue" for="ringSize">1.00</output>
+              </div>
+              <input id="ringSize" type="range" min="0.65" max="1.6" value="1" step="0.05">
+            </div>
+
+            <div class="slider-field">
+              <div class="flex items-center justify-between gap-3">
+                <label for="particleCount">Particle Count</label>
+                <output id="particleCountValue" for="particleCount">90</output>
+              </div>
+              <input id="particleCount" type="range" min="20" max="180" value="90" step="5">
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <footer class="footer-note text-center mt-6">
+        Local files stay in your browser. No streaming logins, no backend, no external audio APIs.
+      </footer>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
