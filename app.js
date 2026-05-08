@@ -7,9 +7,11 @@ const visualMode = document.getElementById("visualMode");
 const particleStyle = document.getElementById("particleStyle");
 const colorPreset = document.getElementById("colorPreset");
 const sensitivity = document.getElementById("sensitivity");
+const bassSensitivity = document.getElementById("bassSensitivity");
 const ringSize = document.getElementById("ringSize");
 const particleCount = document.getElementById("particleCount");
 const sensitivityValue = document.getElementById("sensitivityValue");
+const bassSensitivityValue = document.getElementById("bassSensitivityValue");
 const ringSizeValue = document.getElementById("ringSizeValue");
 const particleCountValue = document.getElementById("particleCountValue");
 const canvas = document.getElementById("visualizerCanvas");
@@ -38,6 +40,7 @@ const state = {
     particleStyle: particleStyle.value,
     theme: colorPreset.value,
     sensitivity: Number(sensitivity.value),
+    bassSensitivity: Number(bassSensitivity.value),
     ringSize: Number(ringSize.value),
     particleCount: Number(particleCount.value)
   },
@@ -81,6 +84,11 @@ function init() {
 
   sensitivity.addEventListener("input", () => {
     state.controls.sensitivity = Number(sensitivity.value);
+    updateControlReadouts();
+  });
+
+  bassSensitivity.addEventListener("input", () => {
+    state.controls.bassSensitivity = Number(bassSensitivity.value);
     updateControlReadouts();
   });
 
@@ -251,7 +259,8 @@ function readAudioData() {
   }
 
   const scaledVolume = Math.min(1, volume * state.controls.sensitivity);
-  const scaledBass = Math.min(1, bass * state.controls.sensitivity);
+  const scaledBass = Math.min(1, bass * state.controls.sensitivity
+    * state.controls.bassSensitivity);
   state.smoothedVolume += (scaledVolume - state.smoothedVolume) * 0.14;
   state.smoothedBass += (scaledBass - state.smoothedBass) * 0.18;
 
@@ -660,6 +669,8 @@ function handleResize() {
 
 function updateControlReadouts() {
   sensitivityValue.textContent = Number(sensitivity.value).toFixed(2);
+  bassSensitivityValue.textContent =
+    Number(bassSensitivity.value).toFixed(2);
   ringSizeValue.textContent = Number(ringSize.value).toFixed(2);
   particleCountValue.textContent = particleCount.value;
 }
