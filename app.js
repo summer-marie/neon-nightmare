@@ -802,16 +802,21 @@ function drawBars(audio) {
     const maxAllowedH = Math.min(H - 8, H * 0.80);
     const barH = Math.max(3, Math.min(boosted * maxBarH, maxAllowedH - 4));
 
-    // Use pre-calculated colors from cache (updated only on theme change)
-    const [r, g, b] = gradientCache.barColors[i] || [255, 255, 255];
+    // Bass bars (center, low i) are bright white
+    // Treble bars (edges, high i) fade toward dark gray
+    const t = i / half;
+    const brightness = Math.round(255 - t * 160);
+    const r = brightness;
+    const g = brightness;
+    const b = brightness;
 
     const shadow = getThemeShadow(0.8 + boosted * 0.6);
     ctx.shadowBlur = isBass
       ? shadow.coreBlur * (1 + boosted * 0.5)
       : shadow.primaryBlur * (0.6 + boosted * 0.4);
     ctx.shadowColor = isBass
-      ? shadow.primaryColor
-      : shadow.secondaryColor;
+      ? `rgba(255, 255, 255, 0.9)`
+      : `rgba(200, 200, 200, 0.6)`;
 
     // Right side bar (mirror index from center going right)
     const xRight = cx + i * barW;
