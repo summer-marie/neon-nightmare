@@ -27,6 +27,8 @@ const state = {
   animationStarted: false,
   lastPeak: 0,
   lastRippleAt: 0,
+  sphereRotationY: 0,
+  sphereRotationX: 0,
   smoothedVolume: 0,
   smoothedBass: 0,
   ripples: [],
@@ -191,7 +193,7 @@ function drawFrame(now = 0) {
     drawIdleState(now);
   } else {
     if (state.controls.mode === "rings" || state.controls.mode === "both") {
-      drawRings(audio, state.controls.mode === "both" ? 0.86 : 1);
+      drawSphere(audio, state.controls.mode === "both" ? 0.86 : 1);
     }
 
     if (state.controls.mode === "ripples" || state.controls.mode === "both") {
@@ -298,46 +300,140 @@ function paintBackground(audio) {
   ctx.restore();
 }
 
-function drawRings(audio, intensity) {
+function drawSphere(audio, intensity) {
   const width = canvas.width;
   const height = canvas.height;
   const centerX = width / 2;
   const centerY = height / 2;
-  const maxRadius = Math.min(width, height) * 0.43 * state.controls.ringSize;
-  const pulse = 1 + audio.bass * 0.42;
-  const ringCount = 6;
+  const latSteps = 10;
+  const lonSteps = 18;
+  const scale = Math.min(width, height) * 0.36 * state.controls.ringSize;
+  const pulse = 1 + audio.bass * 0.25;
+  const sphereScale = scale * pulse;
+  const edgeAlpha = (0.12 + audio.volume * 0.42) * intensity;
+  const spikeBaseLength = scale * 0.16;
+  const spikeLength = spikeBaseLength * (1 + audio.bass * 3.5 + audio.volume * 1.5);
+
+  state.sphereRotationY += 0.004 + audio.bass * 0.018;
+  state.sphereRotationX = Math.sin(performance.now() * 0.0004) * 0.28;
+
+  const vertices = [];
+
+  for (let lat = 0; lat < latSteps; lat += 1) {
+    const theta = -Math.PI / 2 + (Math.PI * lat) / (latSteps - 1);
+    const row = [];
+
+    for (let lon = 0; lon < lonSteps; lon += 1) {
+      const phi = (Math.PI * 2 * lon) / lonSteps;
+      const baseX = Math.cos(theta) * Math.cos(phi);
+      const baseY = Math.sin(theta);
+      const baseZ = Math.cos(theta) * Math.sin(phi);
+      const point = rotatePoint(baseX, baseY, baseZ, state.sphereRotationX, state.sphereRotationY);
+
+      row.push({
+        x: point.x,
+        y: point.y,
+        z: point.z,
+        sx: centerX + point.x * sphereScale,
+        sy: centerY + point.y * sphereScale,
+        index: lat * lonSteps + lon
+      });
+    }
+
+    vertices.push(row);
+  }
 
   ctx.save();
-  ctx.translate(centerX, centerY);
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.shadowBlur = 14 + audio.bass * 42;
 
-  for (let i = ringCount; i >= 1; i -= 1) {
-    const progress = i / ringCount;
-    const radius = maxRadius * progress * pulse + Math.sin(performance.now() * 0.0018 + i) * 5;
-    const alpha = (0.14 + audio.volume * 0.38) * (1 - progress * 0.35) * intensity;
-    const lineWidth = (1.5 + audio.bass * 9) * (1.1 - progress * 0.35);
+  for (let lat = 0; lat < latSteps; lat += 1) {
+    for (let lon = 0; lon < lonSteps; lon += 1) {
+      const current = vertices[lat][lon];
+      const right = vertices[lat][(lon + 1) % lonSteps];
 
-    ctx.beginPath();
-    ctx.arc(0, 0, radius, 0, Math.PI * 2);
-    ctx.strokeStyle = i % 2 === 0
-      ? rgba(state.colors.accentRgb, alpha)
-      : rgba(state.colors.accentTwoRgb, alpha * 0.9);
-    ctx.lineWidth = lineWidth;
-    ctx.shadowBlur = 18 + audio.bass * 38;
-    ctx.shadowColor = i % 2 === 0 ? state.colors.accent : state.colors.accentTwo;
-    ctx.stroke();
+      drawSphereEdge(current, right, current.index, edgeAlpha, audio);
+
+      if (lat < latSteps - 1) {
+        const below = vertices[lat + 1][lon];
+        drawSphereEdge(current, below, current.index + lonSteps, edgeAlpha, audio);
+      }
+    }
+  }
+
+  for (let lat = 0; lat < latSteps; lat += 1) {
+    for (let lon = 0; lon < lonSteps; lon += 1) {
+      const vertex = vertices[lat][lon];
+
+      if (vertex.z <= 0 || vertex.index % 2 !== 0) {
+        continue;
+      }
+
+      const outwardLength = spikeLength * (0.72 + ((vertex.index % 7) / 7) * 0.56);
+      const endX = vertex.sx + vertex.x * outwardLength;
+      const endY = vertex.sy + vertex.y * outwardLength;
+      const rgb = vertex.index % 4 === 0 ? state.colors.accentRgb : state.colors.accentTwoRgb;
+      const color = vertex.index % 4 === 0 ? state.colors.accent : state.colors.accentTwo;
+      const alpha = (0.16 + audio.volume * 0.36 + audio.treble * 0.28) * intensity * Math.min(1, vertex.z + 0.18);
+
+      ctx.beginPath();
+      ctx.moveTo(vertex.sx, vertex.sy);
+      ctx.lineTo(endX, endY);
+      ctx.strokeStyle = rgba(rgb, alpha);
+      ctx.lineWidth = 0.8 + audio.treble * 3.2 + audio.volume * 1.2;
+      ctx.shadowBlur = 16 + audio.bass * 46 + audio.treble * 20;
+      ctx.shadowColor = color;
+      ctx.stroke();
+    }
   }
 
   const coreRadius = 18 + audio.bass * 46;
-  const core = ctx.createRadialGradient(0, 0, 0, 0, 0, coreRadius * 2.8);
+  const core = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, coreRadius * 2.8);
   core.addColorStop(0, rgba(state.colors.accentTwoRgb, 0.7));
   core.addColorStop(0.42, rgba(state.colors.accentRgb, 0.22));
   core.addColorStop(1, "rgba(0, 0, 0, 0)");
   ctx.fillStyle = core;
   ctx.beginPath();
-  ctx.arc(0, 0, coreRadius * 2.8, 0, Math.PI * 2);
+  ctx.arc(centerX, centerY, coreRadius * 2.8, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.restore();
+}
+
+function rotatePoint(x, y, z, rotationX, rotationY) {
+  const cosY = Math.cos(rotationY);
+  const sinY = Math.sin(rotationY);
+  const rotatedX = x * cosY - z * sinY;
+  const rotatedZ = x * sinY + z * cosY;
+  const cosX = Math.cos(rotationX);
+  const sinX = Math.sin(rotationX);
+
+  return {
+    x: rotatedX,
+    y: y * cosX - rotatedZ * sinX,
+    z: y * sinX + rotatedZ * cosX
+  };
+}
+
+function drawSphereEdge(start, end, index, edgeAlpha, audio) {
+  const frontEpsilon = -0.04;
+
+  if (start.z <= frontEpsilon || end.z <= frontEpsilon) {
+    return;
+  }
+
+  const depthAlpha = Math.min(1, Math.max(0.12, (start.z + end.z) * 0.5 + 0.22));
+  const rgb = index % 2 === 0 ? state.colors.accentRgb : state.colors.accentTwoRgb;
+  const color = index % 2 === 0 ? state.colors.accent : state.colors.accentTwo;
+
+  ctx.beginPath();
+  ctx.moveTo(start.sx, start.sy);
+  ctx.lineTo(end.sx, end.sy);
+  ctx.strokeStyle = rgba(rgb, edgeAlpha * depthAlpha);
+  ctx.lineWidth = 0.85 + audio.volume * 2.1 + audio.bass * 1.4;
+  ctx.shadowColor = color;
+  ctx.stroke();
 }
 
 function updateRipples(audio, now) {
